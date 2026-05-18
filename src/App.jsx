@@ -178,8 +178,8 @@ export default function App() {
     [items, total, remaining, userRatio, applyMiyako, isSelfPay]
   )
 
-  const burdenPct = Math.round(userRatio * 100)
-  const insurancePct = Math.round((1 - userRatio) * 100)
+  const burdenPct = Math.round(userRatio * 10)
+  const insurancePct = 10 - burdenPct
   const burdenLabel = `${burdenPct}割`
   const insuranceLabel = `${insurancePct}割`
 
