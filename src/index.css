@@ -21,7 +21,7 @@ input[type=number] {
   }
   @page {
     size: A4;
-    margin: 10mm;
+    margin: 15mm;
   }
   html, body {
     width: 100%;
