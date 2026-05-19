@@ -57,28 +57,20 @@ export default function App() {
   const addContractor = () => setContractorList((p) => [...p, ''])
 
   const tabClass = (id) =>
-    `h-9 px-4 rounded-lg text-sm font-bold transition ${
-      tab === id ? 'bg-white text-blue-700 shadow-sm' : 'bg-blue-500/40 text-white hover:bg-blue-500/60'
+    `relative h-11 px-6 text-sm font-bold transition border-b-2 ${
+      tab === id
+        ? 'text-blue-700 border-blue-600 bg-blue-50/60'
+        : 'text-slate-500 hover:text-slate-800 border-transparent hover:bg-slate-100'
     }`
 
   return (
     <div className="app-bg min-h-screen">
       {/* ヘッダー */}
-      <header className="sticky top-0 z-30 bg-blue-600 text-white shadow-md px-4 py-2 print:hidden">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-sm font-bold tracking-wide whitespace-nowrap">
-              販売受注・売上伝票 統合システム
-            </h1>
-            <nav className="flex gap-1">
-              <button type="button" className={tabClass('juchu')} onClick={() => setTab('juchu')}>
-                販売受注簿
-              </button>
-              <button type="button" className={tabClass('uriage')} onClick={() => setTab('uriage')}>
-                売上伝票発行依頼書
-              </button>
-            </nav>
-          </div>
+      <header className="sticky top-0 z-30 bg-blue-600 text-white shadow-md print:hidden">
+        <div className="max-w-6xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-sm font-bold tracking-wide whitespace-nowrap">
+            販売受注簿・売上伝票発行依頼書
+          </h1>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <button
@@ -107,6 +99,17 @@ export default function App() {
             </button>
           </div>
         </div>
+        {/* タブバー */}
+        <nav className="bg-white border-b border-slate-200 text-slate-800">
+          <div className="max-w-6xl mx-auto px-4 flex">
+            <button type="button" className={tabClass('juchu')} onClick={() => setTab('juchu')}>
+              販売受注簿
+            </button>
+            <button type="button" className={tabClass('uriage')} onClick={() => setTab('uriage')}>
+              売上伝票発行依頼書
+            </button>
+          </div>
+        </nav>
       </header>
 
       {/* マスター管理パネル（両タブ共通） */}

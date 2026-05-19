@@ -5,6 +5,20 @@ import { printDoc } from '../print.js'
 const orderTypes = ['販売', '給付', '在庫', '受領委任', '償還']
 const stockTypes = ['有', '移動', '発注(自社・直送)']
 const catalogTypes = ['介援隊', '夢ライフ', 'ALL LIFE', '他']
+const catalogLinks = [
+  {
+    label: 'ケアマックスカタログ',
+    href: 'https://catalog.kaientai.cc/iportal/CatalogViewInterfaceStartUpAction.do?method=startUp&mode=PAGE&catalogCategoryId=&catalogId=4071630000&pageGroupId=1&volumeID=CMC00008&keyword=&categoryID=&sortMode=&sortKey=&sortOrder=&designID=&designConfirmFlg=',
+  },
+  {
+    label: 'ウェルファンカタログ',
+    href: 'https://www.smart-benrichou.jp/m/home#id=68a81774-6264-464d-ab7f-387cac100017&page=68a817a8-38a4-4eda-9b89-5ce6ac100017',
+  },
+  {
+    label: 'ALL LIFE カタログ',
+    href: 'https://my.ebook5.net/ALLLIFE/MmwdEF/',
+  },
+]
 const checklistOptions = [
   '理由書',
   '写真(事前･事後)',
@@ -444,16 +458,6 @@ export default function JuchuBo({ staffList = [] }) {
     setOrder((current) => ({ ...current, [key]: value }))
   }
 
-  function toggleChecklist(option) {
-    setOrder((current) => {
-      const list = Array.isArray(current.checklist) ? current.checklist : []
-      const checklist = list.includes(option)
-        ? list.filter((item) => item !== option)
-        : [...list, option]
-      return { ...current, checklist }
-    })
-  }
-
   function buildShareUrl(sourceOrder) {
     const payload = encodePayload({ order: { ...sourceOrder, totalAmount: total } })
     return `${location.origin}${location.pathname}#/order?payload=${payload}`
@@ -641,6 +645,22 @@ export default function JuchuBo({ staffList = [] }) {
               <Field className="col-span-12 md:col-span-6 xl:col-span-3" label="カタログ">
                 <ToggleGroup onChange={(value) => patch('catalog', value)} options={catalogTypes} value={order.catalog} />
               </Field>
+              <Field className="col-span-12 md:col-span-6 xl:col-span-4" label="カタログ参照リンク">
+                <div className="flex flex-wrap items-center gap-2">
+                  {catalogLinks.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md border border-teal-300 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-800 hover:bg-teal-100 transition"
+                    >
+                      {link.label}
+                      <span aria-hidden="true">↗</span>
+                    </a>
+                  ))}
+                </div>
+              </Field>
               {order.catalog === '他' && (
                 <Field className="col-span-12 md:col-span-6 xl:col-span-2" label="他 詳細">
                   <input className="input" onChange={(e) => patch('catalogOtherDetail', e.target.value)} value={order.catalogOtherDetail} />
@@ -658,32 +678,6 @@ export default function JuchuBo({ staffList = [] }) {
             </div>
           </div>
 
-          <div className="section-card">
-            <div className="section-heading">金額・チェックリスト</div>
-            <div className="grid grid-cols-12 gap-3 p-3">
-              <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="販売金額内訳(税込)">
-                <input className="input text-right text-lg font-black" readOnly value={`${yen(total)} 円`} />
-              </Field>
-              <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="給付額">
-                <input className="input text-right" inputMode="numeric" onChange={(e) => patch('benefitAmount', e.target.value)} value={order.benefitAmount} />
-              </Field>
-              <div className="col-span-12 grid gap-2">
-                <span className="field-label">特定福祉用具販売・住宅改修 記入･チェック</span>
-                <div className="flex flex-wrap gap-2">
-                  {checklistOptions.map((option) => (
-                    <label className="check-tile" key={option}>
-                      <input
-                        checked={order.checklist.includes(option)}
-                        onChange={() => toggleChecklist(option)}
-                        type="checkbox"
-                      />
-                      <span>{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
       <PrintDocument order={order} total={total} />
