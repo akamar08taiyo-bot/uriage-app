@@ -101,7 +101,7 @@ export default function App() {
   const [showBalance, setShowBalance] = useState(false)
   const [items, setItems] = useState([newItem()])
   const [miyakoChecked, setMiyakoChecked] = useState(false)
-  const [showExTax, setShowExTax] = useState(true)
+  const [showExTax, setShowExTax] = useState(false)
   const [staff, setStaff] = useState(() => localStorage.getItem('fukushi_staff') || '')
   const [triedPrint, setTriedPrint] = useState(false)
   const [isSelfPay, setIsSelfPay] = useState(false)
