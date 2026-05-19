@@ -1,12 +1,11 @@
 {
-  "name": "売上伝票発行依頼フォーム",
-  "short_name": "売上伝票",
-  "description": "福祉用具・住宅改修 売上伝票発行依頼フォーム",
+  "name": "販売受注・売上伝票 統合システム",
+  "short_name": "受注・伝票",
+  "description": "販売受注簿・売上伝票発行依頼書の統合入力システム",
   "lang": "ja",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "icons": [

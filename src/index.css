@@ -6,6 +6,11 @@ html, body, #root {
   height: 100%;
 }
 
+body {
+  margin: 0;
+  font-family: "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+}
+
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -15,13 +20,189 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
+/* ───────────────── 販売受注簿 画面スタイル ───────────────── */
+.field-label {
+  display: block;
+  font-size: 11px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #526171;
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #c8d0da;
+  border-radius: 5px;
+  background: #fff;
+  padding: 8px 10px;
+  color: #18202a;
+  font-weight: 700;
+  outline: none;
+}
+.input:hover {
+  border-color: #94a3b8;
+}
+.input:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2);
+  background: #fff;
+}
+
+.toggle-button {
+  min-height: 44px;
+  border: 1px solid #c8d0da;
+  border-radius: 5px;
+  background: #fff;
+  color: #1f2937;
+  padding: 8px 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+}
+.toggle-button:hover {
+  border-color: #7f98a6;
+  box-shadow: 0 1px 0 rgba(31, 41, 55, 0.05);
+}
+.toggle-button.active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #fff;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.16);
+}
+.toggle-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ledger-table {
+  border-color: #c8d0da;
+}
+.ledger-table th,
+.ledger-table td {
+  border: 1px solid #c8d0da;
+}
+.ledger-table th {
+  background: #e9eef3;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 900;
+  padding: 6px;
+  text-align: left;
+}
+.ledger-table td {
+  background: #fff;
+  padding: 3px;
+}
+.ledger-table input {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  padding: 5px 7px;
+  outline: none;
+}
+.ledger-table input:focus {
+  background: #ecfeff;
+}
+
+.app-bg {
+  background: linear-gradient(180deg, #eef4f7 0%, #f7f9fb 44%, #edf2f7 100%);
+}
+.app-panel {
+  border: 1px solid #d7dde5;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 45px rgba(31, 41, 55, 0.08);
+}
+.app-header {
+  background: linear-gradient(135deg, #17313b 0%, #244751 62%, #1d3f3c 100%);
+  color: #fff;
+}
+.section-card {
+  border: 1px solid #d7dde5;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  border-bottom: 1px solid #d7dde5;
+  background: #f2f5f8;
+  padding: 8px 12px;
+  color: #24313d;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.share-box {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #99d5cd;
+  border-radius: 6px;
+  background: #eefbf8;
+  padding: 8px 10px;
+}
+.total-pill {
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 6px 12px;
+  color: #fff;
+  text-align: right;
+}
+.total-pill span {
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  color: #d6f5ef;
+}
+.total-pill strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+.check-tile {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #c8d0da;
+  border-radius: 5px;
+  background: #fff;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.check-tile input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0f766e;
+}
+
+.screen-only {
+  display: block;
+}
+.print-only {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  .share-box {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ───────────────── 印刷 共通 ───────────────── */
 @media print {
   html {
     font-size: 16px !important;
-  }
-  @page {
-    size: A4;
-    margin: 15mm;
   }
   html, body {
     width: 100%;
@@ -37,13 +218,127 @@ input[type=number] {
   body * {
     box-sizing: border-box;
   }
-  table {
-    width: 100% !important;
-    max-width: 100% !important;
-    table-layout: fixed;
+  .app-bg {
+    background: #fff !important;
   }
   th, td {
     word-break: break-word;
     overflow-wrap: anywhere;
+  }
+
+  /* 販売受注簿 印刷 */
+  .screen-only,
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+
+  .print-document {
+    width: 100%;
+    color: #000;
+    font-family: "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 10px;
+    line-height: 1.25;
+    box-sizing: border-box;
+  }
+  .print-document table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    border: 2px solid #000;
+    page-break-inside: avoid;
+  }
+  .print-document table + table {
+    margin-top: -2px;
+  }
+  .print-document th,
+  .print-document td {
+    border: 1.2px solid #000;
+    padding: 3px 5px;
+    vertical-align: middle;
+    word-break: break-word;
+  }
+  .print-document th {
+    background: #efefef !important;
+    font-weight: 900;
+    text-align: center;
+  }
+  .print-document .sheet-title {
+    font-size: 20px;
+    font-weight: 900;
+    text-align: center;
+  }
+  .print-document .top-cell {
+    height: 75px;
+  }
+  .print-document .stamp-grid {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .print-document .stamp-box {
+    display: grid;
+    width: 68px;
+    height: 68px;
+    grid-template-rows: 19px 1fr;
+    border: 2px solid #000;
+    text-align: center;
+    font-weight: 900;
+  }
+  .print-document .stamp-box span {
+    border-bottom: 2px solid #000;
+    line-height: 19px;
+  }
+  .print-document .mini-stamp {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    margin: 0 auto;
+    border: 1.8px solid #000;
+    place-items: center;
+  }
+  .print-document .info-table th,
+  .print-document .manage-table th {
+    width: 11%;
+  }
+  .print-document .info-table td,
+  .print-document .manage-table td {
+    height: 25px;
+  }
+  .print-document .items-table th {
+    height: 23px;
+  }
+  .print-document .items-table td {
+    height: 26px;
+  }
+  .print-document .value-cell {
+    min-height: 18px;
+    font-weight: 700;
+  }
+  .print-document .amount-cell {
+    text-align: right;
+    font-size: 13px;
+    font-weight: 900;
+  }
+  .print-document .check-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .print-document .check-item {
+    border-right: 1.2px solid #000;
+    padding: 2px 4px;
+    font-weight: 800;
+  }
+  .print-document .check-item:nth-child(4n) {
+    border-right: 0;
+  }
+
+  /* 売上伝票発行依頼書 印刷 */
+  .uriage-print table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed;
   }
 }
