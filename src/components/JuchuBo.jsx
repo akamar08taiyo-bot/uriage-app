@@ -5,6 +5,10 @@ import { printDoc } from '../print.js'
 const orderTypes = ['販売', '給付', '在庫', '受領委任', '償還']
 const stockTypes = ['有', '移動', '発注(自社・直送)']
 const catalogTypes = ['介援隊', '夢ライフ', 'ALL LIFE', '他']
+const orderFormLinks = [
+  { label: '海援隊 ウェブ発注', href: 'https://www.kaientai.cc/login.aspx' },
+  { label: 'ウェルファン ウェブ発注', href: 'https://www.welfan.shop/' },
+]
 const catalogLinks = [
   {
     label: 'ケアマックスカタログ',
@@ -672,7 +676,7 @@ export default function JuchuBo({ staffList = [] }) {
               <Field className="col-span-12 md:col-span-6 xl:col-span-3" label="カタログ">
                 <ToggleGroup onChange={(value) => patch('catalog', value)} options={catalogTypes} value={order.catalog} />
               </Field>
-              <Field className="col-span-12 md:col-span-6 xl:col-span-4" label="カタログ参照リンク">
+              <Field className="col-span-12 md:col-span-6 xl:col-span-3" label="カタログ参照リンク">
                 <div className="flex flex-wrap items-center gap-2">
                   {catalogLinks.map((link) => (
                     <a
@@ -688,20 +692,39 @@ export default function JuchuBo({ staffList = [] }) {
                   ))}
                 </div>
               </Field>
+              <Field className="col-span-12 md:col-span-6 xl:col-span-3" label="ウェブ発注フォーム">
+                <div className="flex flex-col gap-1">
+                  {orderFormLinks.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-fit items-center gap-1 rounded-md border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-800 hover:bg-indigo-100 transition"
+                    >
+                      {link.label}
+                      <span aria-hidden="true">↗</span>
+                    </a>
+                  ))}
+                </div>
+              </Field>
               {order.catalog === '他' && (
-                <Field className="col-span-12 md:col-span-6 xl:col-span-2" label="他 詳細">
+                <Field className="col-span-12 md:col-span-6 xl:col-span-3" label="他 詳細">
                   <input className="input" onChange={(e) => patch('catalogOtherDetail', e.target.value)} value={order.catalogOtherDetail} />
                 </Field>
               )}
-              <Field className="col-span-12 md:col-span-3 xl:col-span-1" label="VOL.">
-                <input className="input" onChange={(e) => patch('catalogVol', e.target.value)} value={order.catalogVol} />
-              </Field>
-              <Field className="col-span-12 md:col-span-3 xl:col-span-1" label="ページ">
-                <input className="input" onChange={(e) => patch('catalogPage', e.target.value)} value={order.catalogPage} />
-              </Field>
-              <Field className="col-span-12 md:col-span-6 xl:col-span-5" label="申込№・注文ｺｰﾄﾞ">
-                <input className="input" onChange={(e) => patch('catalogOrderCode', e.target.value)} value={order.catalogOrderCode} />
-              </Field>
+              {/* VOL./ページ/注文コードはひとまとめにして近接配置 */}
+              <div className="col-span-12 grid grid-cols-12 gap-3 rounded-md bg-slate-50 p-2">
+                <Field className="col-span-4 md:col-span-2 xl:col-span-1" label="VOL.">
+                  <input className="input" onChange={(e) => patch('catalogVol', e.target.value)} value={order.catalogVol} />
+                </Field>
+                <Field className="col-span-4 md:col-span-2 xl:col-span-1" label="ページ">
+                  <input className="input" onChange={(e) => patch('catalogPage', e.target.value)} value={order.catalogPage} />
+                </Field>
+                <Field className="col-span-12 md:col-span-8 xl:col-span-10" label="申込№・注文ｺｰﾄﾞ">
+                  <input className="input" onChange={(e) => patch('catalogOrderCode', e.target.value)} value={order.catalogOrderCode} />
+                </Field>
+              </div>
             </div>
           </div>
 
