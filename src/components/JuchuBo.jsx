@@ -126,6 +126,25 @@ function loadOrders() {
   }
 }
 
+async function shortenUrl(longUrl) {
+  // is.gd は長すぎる URL を拒否する事があるため、ダメなら TinyURL へフォールバック。
+  try {
+    const r = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`)
+    if (r.ok) {
+      const t = (await r.text()).trim()
+      if (/^https?:\/\//.test(t)) return t
+    }
+  } catch {}
+  try {
+    const r = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`)
+    if (r.ok) {
+      const t = (await r.text()).trim()
+      if (/^https?:\/\//.test(t)) return t
+    }
+  } catch {}
+  return longUrl
+}
+
 function saveOrderLocal(order, id) {
   const orderId = id || makeId()
   const all = loadOrders()
@@ -479,14 +498,23 @@ export default function JuchuBo({ staffList = [] }) {
     return { id, url: buildShareUrl(data) }
   }
 
+  // 保存＋共有URL生成（可能なら短縮）
+  async function getShareUrl() {
+    const { url: longUrl } = persistOrder()
+    setMessage('短縮URLを生成中…')
+    const short = await shortenUrl(longUrl)
+    setShareUrl(short)
+    return { longUrl, shortUrl: short, shortened: short !== longUrl }
+  }
+
   async function saveOrder() {
-    const { url } = persistOrder()
-    setShareUrl(url)
-    const copied = await writeClipboard(url)
+    const { shortUrl, shortened } = await getShareUrl()
+    const copied = await writeClipboard(shortUrl)
+    const label = shortened ? '短縮URL' : '共有URL'
     setMessage(
       copied
-        ? '保存しました。共有リンクをクリップボードにコピーしました。'
-        : '保存しました。共有リンクを下に表示しました。',
+        ? `保存しました。${label}をクリップボードにコピーしました。`
+        : `保存しました。${label}を下に表示しました。`,
     )
   }
 
@@ -494,9 +522,8 @@ export default function JuchuBo({ staffList = [] }) {
     await saveOrder()
   }
 
-  function createMail() {
-    const { url } = persistOrder()
-    setShareUrl(url)
+  async function createMail() {
+    const { shortUrl } = await getShareUrl()
     const lines = order.items
       .filter((item) => item.productName || item.modelNumber)
       .map(
@@ -506,7 +533,7 @@ export default function JuchuBo({ staffList = [] }) {
       .join('\n')
     const customerLine = `${order.customerName || ''}${order.customerKana ? `（${order.customerKana}）` : ''}`
     const subject = `販売受注確認 ${order.customerName || ''}`.trim()
-    const body = `顧客名: ${customerLine}\n\n商品明細:\n${lines || '未入力'}\n\n合計金額: ${yen(total)}円\n\nシステム確認用リンクURL:\n${url}`
+    const body = `顧客名: ${customerLine}\n\n商品明細:\n${lines || '未入力'}\n\n合計金額: ${yen(total)}円\n\nシステム確認用リンクURL:\n${shortUrl}`
     location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   }
 
