@@ -1,0 +1,20 @@
+{
+  "name": "売上伝票発行依頼フォーム",
+  "short_name": "売上伝票",
+  "description": "福祉用具・住宅改修 売上伝票発行依頼フォーム",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
