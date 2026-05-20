@@ -259,6 +259,12 @@ function OrderTable({ items, onChange }) {
                 </tr>
               )
             })}
+            <tr>
+              <td colSpan={6} className="bg-blue-50 px-3 text-right font-black text-slate-700">合計（税込）</td>
+              <td className="bg-blue-50 px-2 text-right font-black text-lg">
+                {yen(items.reduce((s, it) => s + numberValue(it.quantity) * numberValue(it.unitPrice), 0))} 円
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -420,7 +426,7 @@ function PrintDocument({ order, total }) {
             <th>発注者</th>
             <td className="value-cell">{text(order.orderer)}</td>
             <th>入荷確認</th>
-            <td className="value-cell">{order.arrivalConfirmed ? '済' : ''}</td>
+            <td className="value-cell" style={{textAlign:'center', fontSize:'14px'}}>{order.arrivalConfirmed ? '☑' : '☐'}</td>
             <th>カタログ</th>
             <td className="value-cell">{text(catalogLabel)}</td>
           </tr>
@@ -431,10 +437,6 @@ function PrintDocument({ order, total }) {
             <td className="value-cell">{text(order.catalogPage)}</td>
             <th>申込№・注文ｺｰﾄﾞ</th>
             <td className="value-cell" colSpan="3">{text(order.catalogOrderCode)}</td>
-          </tr>
-          <tr>
-            <th>給付額</th>
-            <td className="amount-cell" colSpan="7">{order.benefitAmount ? `${yen(numberValue(order.benefitAmount))} 円` : ''}</td>
           </tr>
         </tbody>
       </table>
@@ -554,10 +556,6 @@ export default function JuchuBo({ staffList = [] }) {
             <p className="text-xs font-bold text-slate-200">データ同梱リンクで共有できます</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="total-pill">
-              <span>税込合計</span>
-              <strong>{yen(total)} 円</strong>
-            </div>
             <button className="toggle-button" onClick={() => printDoc('landscape')} type="button">
               印刷
             </button>
@@ -637,16 +635,16 @@ export default function JuchuBo({ staffList = [] }) {
               <Field className="col-span-12 md:col-span-4 xl:col-span-2" label="売上伝票番号">
                 <input className="input" onChange={(e) => patch('salesSlipNumber', e.target.value)} value={order.salesSlipNumber} />
               </Field>
-              <Field className="col-span-12 md:col-span-4 xl:col-span-3" label="依頼者（施設･居宅･ｹｱﾏﾈ等）">
+              <Field className="col-span-12 md:col-span-8 xl:col-span-6" label="依頼者（施設･居宅･ｹｱﾏﾈ等）">
                 <input className="input" onChange={(e) => patch('requester', e.target.value)} value={order.requester} />
               </Field>
-              <Field className="col-span-12 md:col-span-4 xl:col-span-3" label="顧客名">
+              <Field className="col-span-12 md:col-span-6 xl:col-span-6" label="顧客名">
                 <input className="input" onChange={(e) => patch('customerName', e.target.value)} value={order.customerName} />
               </Field>
-              <Field className="col-span-12 md:col-span-4 xl:col-span-3" label="フリガナ">
+              <Field className="col-span-12 md:col-span-6 xl:col-span-6" label="フリガナ">
                 <input className="input" onChange={(e) => patch('customerKana', e.target.value)} value={order.customerKana} />
               </Field>
-              <Field className="col-span-12 xl:col-span-9" label="住所・TEL">
+              <Field className="col-span-12 xl:col-span-12" label="住所・TEL">
                 <input className="input" onChange={(e) => patch('addressTel', e.target.value)} value={order.addressTel} />
               </Field>
             </div>
