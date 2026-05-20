@@ -536,18 +536,12 @@ export default function JuchuBo({ master = { offices: [], staff: [], orderers: [
     await saveOrder()
   }
 
-  async function createMail() {
-    const { shortUrl } = await getShareUrl()
-    const lines = order.items
-      .filter((item) => item.productName || item.modelNumber)
-      .map(
-        (item) =>
-          `・${item.productName} ${item.modelNumber} ${item.colorSize} 数量:${item.quantity}${item.unit} 単価:${yen(numberValue(item.unitPrice))} 金額:${yen(numberValue(item.quantity) * numberValue(item.unitPrice))}`,
-      )
-      .join('\n')
-    const customerLine = `${order.customerName || ''}${order.customerKana ? `（${order.customerKana}）` : ''}`
-    const subject = `販売受注確認 ${order.customerName || ''}`.trim()
-    const body = `顧客名: ${customerLine}\n\n商品明細:\n${lines || '未入力'}\n\n合計金額: ${yen(total)}円\n\nシステム確認用リンクURL:\n${shortUrl}`
+  function createMail() {
+    // メール用は短縮しない長いURLをそのまま使用（URL自体が状態を保持）
+    const { url: longUrl } = persistOrder()
+    setShareUrl(longUrl)
+    const subject = `販売受注のご依頼 ${order.customerName || ''}`.trim()
+    const body = `お疲れ様です。\n下記URLの通り、発注をお願いいたします。\n\n${longUrl}\n`
     location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   }
 

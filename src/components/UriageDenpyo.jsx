@@ -249,18 +249,12 @@ export default function UriageDenpyo({ master = { offices: [], salesPersons: [],
     const label = shortened ? '短縮URL' : '共有URL'
     setShareMsg(copied ? `${label}をクリップボードにコピーしました。` : `${label}を下に表示しました。`)
   }
-  async function createMail() {
-    const { shortUrl } = await getShareUrl()
-    const lines = items
-      .filter((it) => it.amount > 0)
-      .map((it, i) => `${i + 1}. 金額:${fmt(it.amount)}${hasCost ? ` / 仕切り:${fmt(it.cost)}` : ''}${it.productName ? ` / ${it.productName}` : ''}${it.color ? ` (${it.color})` : ''}`)
-      .join('\n')
-    const subject = `売上伝票発行依頼 ${customerName || ''}`.trim()
-    const body =
-      `担当者: ${staff}\n顧客名: ${customerName}\nサービス区分: ${serviceType === 'housing' ? '住宅改修' : '特定福祉用具'}\n` +
-      `${category ? `種目: ${category}\n` : ''}` +
-      `\n明細:\n${lines || '未入力'}\n\n総合計: ${fmt(total)}\nご利用者お支払い合計: ${fmt(calc.totalUserBurden)}\n\n` +
-      `内容確認用リンク:\n${shortUrl}`
+  function createMail() {
+    // メール用は短縮しない長いURLをそのまま使用
+    const longUrl = buildLongShareUrl()
+    setShareUrl(longUrl)
+    const subject = `売上伝票発行のご依頼 ${customerName || ''}`.trim()
+    const body = `お疲れ様です。\n下記URLの通り、売上伝票の発行をお願いいたします。\n\n${longUrl}\n`
     location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   }
   function clearAll() {
