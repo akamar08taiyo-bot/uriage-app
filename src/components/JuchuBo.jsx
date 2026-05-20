@@ -3,7 +3,8 @@ import { printDoc } from '../print.js'
 
 /* ── 定数 ─────────────────────────────────── */
 const orderTypes = ['販売', '給付', '在庫', '受領委任', '償還']
-const stockTypes = ['有', '移動', '発注(自社・直送)']
+const stockTypes = ['有', '移動', '発注']
+const orderSubTypes = ['自社', '直送']
 const catalogTypes = ['介援隊', '夢ライフ', 'ALL LIFE', 'ナビス', '他']
 // カタログ→発注先の自動補完マップ
 const catalogToSupplier = {
@@ -49,9 +50,7 @@ const blankItem = () => ({
 })
 
 const blankOrder = () => ({
-  orderDateYear: '',
-  orderDateMonth: '',
-  orderDateDay: '',
+  orderDate: '',
   orderType: '販売',
   salesRepName: '',
   requester: '',
@@ -63,7 +62,8 @@ const blankOrder = () => ({
   salesSlipNumber: '',
   items: [blankItem()],
   orderNumber: '',
-  stockArrivalType: '有',
+  stockArrivalType: '発注',
+  orderSubType: '自社',
   supplierOrMoveFrom: '',
   purchaseOrderNumber: '',
   orderer: '',
@@ -227,7 +227,7 @@ function OrderTable({ items, onChange }) {
               <th className="w-[18%]">型式(メーカー品番)</th>
               <th className="w-[17%]">カラー／サイズ</th>
               <th className="w-[8%]">数量</th>
-              <th className="w-[8%]">単位</th>
+              <th className="w-[8%]">単位<span className="font-normal text-[10px] text-slate-500">（任意）</span></th>
               <th className="w-[10%]">単価</th>
               <th className="w-[11%]">金額</th>
             </tr>
@@ -275,13 +275,17 @@ function PrintDocument({ order, total }) {
       ['productName', 'modelNumber', 'colorSize', 'quantity', 'unit', 'unitPrice'].some((key) => item[key]),
     ),
   ]
-  while (printableItems.length < 8) printableItems.push(blankItem())
+  // 空行のパディングは廃止：入力済みの行だけ印刷する
   const text = (value) => value || ' '
-  const orderDate = [
-    order.orderDateYear ? `${order.orderDateYear}年` : '',
-    order.orderDateMonth ? `${order.orderDateMonth}月` : '',
-    order.orderDateDay ? `${order.orderDateDay}日` : '',
-  ].filter(Boolean).join(' ')
+  const orderDate = order.orderDate
+    ? (() => {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(order.orderDate)
+        return m ? `${m[1]}年${Number(m[2])}月${Number(m[3])}日` : order.orderDate
+      })()
+    : ''
+  const arrivalTypeLabel = order.stockArrivalType === '発注'
+    ? `発注(${order.orderSubType || '自社'})`
+    : (order.stockArrivalType || '')
   const catalogLabel =
     order.catalog === '他' && order.catalogOtherDetail
       ? `${order.catalog}（${order.catalogOtherDetail}）`
@@ -290,23 +294,9 @@ function PrintDocument({ order, total }) {
   return (
     <section className="print-only print-document">
       <table className="title-table">
-        <colgroup>
-          <col style={{ width: '72%' }} />
-          <col style={{ width: '28%' }} />
-        </colgroup>
         <tbody>
           <tr>
-            <td className="sheet-title top-cell">販売受注簿</td>
-            <td className="top-cell">
-              <div className="stamp-grid">
-                {['入荷確認', '発注者'].map((label) => (
-                  <div className="stamp-box" key={label}>
-                    <span>{label}</span>
-                    <div></div>
-                  </div>
-                ))}
-              </div>
-            </td>
+            <td className="sheet-title">販売受注簿</td>
           </tr>
         </tbody>
       </table>
@@ -393,6 +383,15 @@ function PrintDocument({ order, total }) {
         </tbody>
       </table>
 
+      <table className="total-table">
+        <tbody>
+          <tr>
+            <th style={{ width: '22%' }}>販売金額内訳(税込)</th>
+            <td className="amount-cell">{yen(total)} 円</td>
+          </tr>
+        </tbody>
+      </table>
+
       <table className="manage-table">
         <colgroup>
           <col style={{ width: '11%' }} />
@@ -409,7 +408,7 @@ function PrintDocument({ order, total }) {
             <th>受注番号</th>
             <td className="value-cell">{text(order.orderNumber)}</td>
             <th>在庫/入荷先</th>
-            <td className="value-cell">{text(order.stockArrivalType)}</td>
+            <td className="value-cell">{text(arrivalTypeLabel)}</td>
             <th>発注先/移動元</th>
             <td className="value-cell">{text(order.supplierOrMoveFrom)}</td>
             <th>発注番号</th>
@@ -419,9 +418,9 @@ function PrintDocument({ order, total }) {
             <th>入荷日</th>
             <td className="value-cell">{text(order.arrivalDate)}</td>
             <th>発注者</th>
-            <td className="value-cell"><div className="mini-stamp"></div></td>
+            <td className="value-cell">{text(order.orderer)}</td>
             <th>入荷確認</th>
-            <td className="value-cell"><div className="mini-stamp"></div></td>
+            <td className="value-cell">{order.arrivalConfirmed ? '済' : ''}</td>
             <th>カタログ</th>
             <td className="value-cell">{text(catalogLabel)}</td>
           </tr>
@@ -434,15 +433,13 @@ function PrintDocument({ order, total }) {
             <td className="value-cell" colSpan="3">{text(order.catalogOrderCode)}</td>
           </tr>
           <tr>
-            <th>販売金額内訳(税込)</th>
-            <td className="amount-cell" colSpan="3">{yen(total)} 円</td>
             <th>給付額</th>
-            <td className="amount-cell" colSpan="3">{order.benefitAmount ? `${yen(numberValue(order.benefitAmount))} 円` : ' '}</td>
+            <td className="amount-cell" colSpan="7">{order.benefitAmount ? `${yen(numberValue(order.benefitAmount))} 円` : ''}</td>
           </tr>
         </tbody>
       </table>
 
-      <table className="check-table">
+      <table className="check-table" style={{display:'none'}}>
         <tbody>
           <tr>
             <th style={{ width: '19%' }}>特定福祉用具販売・住宅改修<br />記入･チェック</th>
@@ -612,12 +609,13 @@ export default function JuchuBo({ staffList = [] }) {
           <div className="section-card">
             <div className="section-heading">基本情報</div>
             <div className="grid grid-cols-12 gap-3 p-3">
-              <Field className="col-span-12 md:col-span-4 xl:col-span-2" label="受注日（年・月・日）">
-                <div className="grid grid-cols-3 gap-2">
-                  <input className="input text-center" inputMode="numeric" onChange={(e) => patch('orderDateYear', e.target.value)} placeholder="年" value={order.orderDateYear} />
-                  <input className="input text-center" inputMode="numeric" onChange={(e) => patch('orderDateMonth', e.target.value)} placeholder="月" value={order.orderDateMonth} />
-                  <input className="input text-center" inputMode="numeric" onChange={(e) => patch('orderDateDay', e.target.value)} placeholder="日" value={order.orderDateDay} />
-                </div>
+              <Field className="col-span-12 md:col-span-4 xl:col-span-2" label="受注日">
+                <input
+                  className="input"
+                  type="date"
+                  value={order.orderDate}
+                  onChange={(e) => patch('orderDate', e.target.value)}
+                />
               </Field>
               <Field className="col-span-12 md:col-span-8 xl:col-span-4" label="受注区分">
                 <ToggleGroup onChange={(value) => patch('orderType', value)} options={orderTypes} value={order.orderType} />
@@ -667,8 +665,13 @@ export default function JuchuBo({ staffList = [] }) {
               <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="受注番号">
                 <input className="input" onChange={(e) => patch('orderNumber', e.target.value)} value={order.orderNumber} />
               </Field>
-              <Field className="col-span-12 md:col-span-6 xl:col-span-3" label="在庫/入荷先">
-                <ToggleGroup onChange={(value) => patch('stockArrivalType', value)} options={stockTypes} value={order.stockArrivalType} />
+              <Field className="col-span-12 md:col-span-6 xl:col-span-4" label="在庫/入荷先">
+                <div className="flex flex-wrap items-center gap-2">
+                  <ToggleGroup onChange={(value) => patch('stockArrivalType', value)} options={stockTypes} value={order.stockArrivalType} />
+                  {order.stockArrivalType === '発注' && (
+                    <ToggleGroup onChange={(value) => patch('orderSubType', value)} options={orderSubTypes} value={order.orderSubType} />
+                  )}
+                </div>
               </Field>
               <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="発注先/移動元">
                 <input className="input" onChange={(e) => patch('supplierOrMoveFrom', e.target.value)} value={order.supplierOrMoveFrom} />
