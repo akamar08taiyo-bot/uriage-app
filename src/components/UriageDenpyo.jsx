@@ -137,11 +137,11 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
   /* localStorage 永続化 */
   useEffect(() => { localStorage.setItem('fukushi_staff', staff) }, [staff])
 
-  /* サービス区分変更 */
+  /* サービス区分変更：明細(金額/仕切り)はクリア、基本情報・属性は維持 */
   useEffect(() => {
     setRemaining(DEFAULT_REMAINING[serviceType] || DEFAULT_REMAINING.housing)
     setMiyakoChecked(false)
-    // 住宅改修になったら種目はクリア
+    setItems([newItem()])
     if (serviceType !== 'specific') setCategory('')
   }, [serviceType])
 
@@ -575,32 +575,9 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
                       </button>
                     )}
                   </div>
-                  {/* 商品詳細（特定福祉用具 & showDetail時のみ） */}
+                  {/* 商品詳細（特定福祉用具 & showDetail時のみ）：商品名・カラーのみ */}
                   {serviceType === 'specific' && showDetail && (
-                    <div className="ml-6 grid grid-cols-[1.4fr_3fr_1fr] gap-1">
-                      <div className="space-y-1">
-                        <select
-                          value={CATALOGS.includes(item.catalog) ? item.catalog : 'その他'}
-                          onChange={(e) =>
-                            updateItem(item.id, 'catalog', e.target.value === 'その他' ? '' : e.target.value)
-                          }
-                          className={`${baseInput} text-[11px] h-7`}
-                        >
-                          {CATALOGS.map((c) => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                          <option value="その他">その他（手入力）</option>
-                        </select>
-                        {!CATALOGS.includes(item.catalog) && (
-                          <input
-                            type="text"
-                            value={item.catalog}
-                            onChange={(e) => updateItem(item.id, 'catalog', e.target.value)}
-                            placeholder="カタログ名を入力"
-                            className={`${baseInput} text-[11px] h-7`}
-                          />
-                        )}
-                      </div>
+                    <div className="ml-6 grid grid-cols-[3fr_1fr] gap-1">
                       <input
                         type="text"
                         value={item.productName}
@@ -813,9 +790,8 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
           <col style={{ width: '8%' }} />
           {showProductDetail && (
             <>
+              <col style={{ width: '32%' }} />
               <col style={{ width: '16%' }} />
-              <col style={{ width: '24%' }} />
-              <col style={{ width: '12%' }} />
             </>
           )}
           <col />
@@ -827,7 +803,6 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
             <th className="border border-slate-500 px-1.5 py-1 text-center">No</th>
             {showProductDetail && (
               <>
-                <th className="border border-slate-500 px-1.5 py-1 text-left">カタログ</th>
                 <th className="border border-slate-500 px-1.5 py-1 text-left">商品名</th>
                 <th className="border border-slate-500 px-1.5 py-1 text-left">カラー</th>
               </>
@@ -843,7 +818,6 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
               <td className="border border-slate-500 px-1.5 py-1 text-center align-top">{i + 1}</td>
               {showProductDetail && (
                 <>
-                  <td className="border border-slate-500 px-1.5 py-1 align-top break-words">{item.catalog}</td>
                   <td className="border border-slate-500 px-1.5 py-1 align-top break-words">{item.productName}</td>
                   <td className="border border-slate-500 px-1.5 py-1 align-top break-words">{item.color}</td>
                 </>
