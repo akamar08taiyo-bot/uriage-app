@@ -1,11 +1,34 @@
 import { useState, useEffect, useMemo } from 'react'
 import { printDoc } from '../print.js'
+import { encodePayload, decodePayload, shortenUrl, readPayloadFromHash, writeClipboard } from '../share.js'
 
 /* ── 定数 ─────────────────────────────────── */
 const DEFAULT_REMAINING = { housing: 200000, specific: 100000 }
 const CARE_LEVELS = ['支援１', '支援２', '介護１', '介護２', '介護３', '介護４', '介護５']
 const CATALOGS = ['ケアマックス', 'ウェルファン']
 const TAX = 1.1
+// 特定福祉用具の種目
+const SPECIFIC_CATEGORIES = [
+  '腰掛便座',
+  '自動排泄処理装置の交換可能部品',
+  '排泄予測支援機器',
+  '入浴補助用具',
+  '簡易浴槽',
+  '移動用リフトのつり具の部分',
+  '車いす',
+  '車いす付属品',
+  '特殊寝台',
+  '特殊寝台付属品',
+  '床ずれ防止用具',
+  '体位変換器',
+  '手すり',
+  'スロープ',
+  '歩行器',
+  '歩行補助つえ',
+  '認知症老人徘徊感知機器',
+  '移動用リフト',
+  '自動排泄処理装置',
+]
 
 let _seq = 0
 const newItem = () => ({ id: ++_seq, amount: 0, cost: 0, catalog: 'ケアマックス', productName: '', color: '' })
@@ -107,6 +130,9 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
   const [showDetail, setShowDetail] = useState(false)
   const [contractor, setContractor] = useState('')
   const [contractorManual, setContractorManual] = useState(false)
+  const [category, setCategory] = useState('')
+  const [shareUrl, setShareUrl] = useState('')
+  const [shareMsg, setShareMsg] = useState('')
 
   /* localStorage 永続化 */
   useEffect(() => { localStorage.setItem('fukushi_staff', staff) }, [staff])
@@ -115,7 +141,39 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
   useEffect(() => {
     setRemaining(DEFAULT_REMAINING[serviceType] || DEFAULT_REMAINING.housing)
     setMiyakoChecked(false)
+    // 住宅改修になったら種目はクリア
+    if (serviceType !== 'specific') setCategory('')
   }, [serviceType])
+
+  /* 共有リンクから状態復元 */
+  useEffect(() => {
+    const payload = decodePayload(readPayloadFromHash('uriage'))
+    const s = payload?.sales
+    if (!s) return
+    if (s.serviceType) setServiceType(s.serviceType)
+    if (s.issueDate) setIssueDate(s.issueDate)
+    if (typeof s.customerName === 'string') setCustomerName(s.customerName)
+    if (typeof s.customerAddress === 'string') setCustomerAddress(s.customerAddress)
+    if (typeof s.officeName === 'string') setOfficeName(s.officeName)
+    if (typeof s.careManager === 'string') setCareManager(s.careManager)
+    if (s.customerType) setCustomerType(s.customerType)
+    if (s.billingType) setBillingType(s.billingType)
+    if (s.careLevel) setCareLevel(s.careLevel)
+    if (typeof s.userRatio === 'number') setUserRatio(s.userRatio)
+    if (typeof s.remaining === 'number') setRemaining(s.remaining)
+    if (Array.isArray(s.items) && s.items.length) {
+      setItems(s.items.map((it) => ({ ...newItem(), ...it })))
+    }
+    if (typeof s.miyakoChecked === 'boolean') setMiyakoChecked(s.miyakoChecked)
+    if (typeof s.showExTax === 'boolean') setShowExTax(s.showExTax)
+    if (typeof s.staff === 'string') setStaff(s.staff)
+    if (typeof s.isSelfPay === 'boolean') setIsSelfPay(s.isSelfPay)
+    if (typeof s.showDetail === 'boolean') setShowDetail(s.showDetail)
+    if (typeof s.contractor === 'string') setContractor(s.contractor)
+    if (typeof s.category === 'string') setCategory(s.category)
+    setShareMsg('共有リンクから内容を読み込みました。')
+    setShareUrl(location.href)
+  }, [])
 
   /* 派生値 */
   const hasCost = serviceType === 'housing'
@@ -160,6 +218,72 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
     if (canPrint) printDoc('portrait')
   }
 
+  /* 共有リンク・メール・全削除 */
+  function snapshotSales() {
+    return {
+      serviceType, issueDate, customerName, customerAddress, officeName, careManager,
+      customerType, billingType, careLevel, userRatio, remaining,
+      items, miyakoChecked, showExTax, staff, isSelfPay, showDetail, contractor, category,
+      total, totalUserBurden: calc.totalUserBurden,
+    }
+  }
+  function buildLongShareUrl() {
+    const payload = encodePayload({ kind: 'uriage', sales: snapshotSales() })
+    return `${location.origin}${location.pathname}#/uriage?payload=${payload}`
+  }
+  async function getShareUrl() {
+    setShareMsg('短縮URLを生成中…')
+    const longUrl = buildLongShareUrl()
+    const short = await shortenUrl(longUrl)
+    setShareUrl(short)
+    return { longUrl, shortUrl: short, shortened: short !== longUrl }
+  }
+  async function copyShareLink() {
+    const { shortUrl, shortened } = await getShareUrl()
+    const copied = await writeClipboard(shortUrl)
+    const label = shortened ? '短縮URL' : '共有URL'
+    setShareMsg(copied ? `${label}をクリップボードにコピーしました。` : `${label}を下に表示しました。`)
+  }
+  async function createMail() {
+    const { shortUrl } = await getShareUrl()
+    const lines = items
+      .filter((it) => it.amount > 0)
+      .map((it, i) => `${i + 1}. 金額:${fmt(it.amount)}${hasCost ? ` / 仕切り:${fmt(it.cost)}` : ''}${it.productName ? ` / ${it.productName}` : ''}${it.color ? ` (${it.color})` : ''}`)
+      .join('\n')
+    const subject = `売上伝票発行依頼 ${customerName || ''}`.trim()
+    const body =
+      `担当者: ${staff}\n顧客名: ${customerName}\nサービス区分: ${serviceType === 'housing' ? '住宅改修' : '特定福祉用具'}\n` +
+      `${category ? `種目: ${category}\n` : ''}` +
+      `\n明細:\n${lines || '未入力'}\n\n総合計: ${fmt(total)}\nご利用者お支払い合計: ${fmt(calc.totalUserBurden)}\n\n` +
+      `内容確認用リンク:\n${shortUrl}`
+    location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+  function clearAll() {
+    if (!window.confirm('入力内容をすべて削除します。よろしいですか？')) return
+    setServiceType('housing')
+    setIssueDate(today)
+    setCustomerName('')
+    setCustomerAddress('')
+    setOfficeName('')
+    setCareManager('')
+    setCustomerType('new')
+    setBillingType('receipt')
+    setCareLevel('介護１')
+    setUserRatio(0.1)
+    setRemaining(DEFAULT_REMAINING.housing)
+    setItems([newItem()])
+    setMiyakoChecked(false)
+    setShowExTax(false)
+    setTriedPrint(false)
+    setIsSelfPay(false)
+    setShowDetail(false)
+    setContractor('')
+    setContractorManual(false)
+    setCategory('')
+    setShareUrl('')
+    setShareMsg('入力内容を削除しました。')
+  }
+
   /* 計算結果行 */
   const resultRows = [
     ['総合計', calc.total],
@@ -176,8 +300,33 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
   return (
     <>
     <div className="min-h-full bg-gradient-to-br from-slate-50 to-blue-50/30 print:hidden">
+      {/* アクションバー */}
+      <div className="max-w-[1500px] mx-auto px-4 pt-3">
+        <div className="bg-white rounded-xl shadow-sm ring-1 ring-slate-200/70 px-3 py-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold text-slate-500">操作:</span>
+          <button type="button" onClick={createMail} className="h-9 px-3 rounded-lg text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50">メール作成</button>
+          <button type="button" onClick={copyShareLink} className="h-9 px-3 rounded-lg text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50">共有リンク</button>
+          <button type="button" onClick={clearAll} className="h-9 px-3 rounded-lg text-xs font-bold border border-red-300 text-red-700 hover:bg-red-50">全削除</button>
+          <div className="ml-auto text-xs font-bold text-slate-500">{shareMsg}</div>
+        </div>
+        {shareUrl && (
+          <div className="mt-2 share-box">
+            <span className="text-xs font-black text-teal-900">共有URL</span>
+            <a className="truncate text-sm font-bold text-teal-950 underline" href={shareUrl}>{shareUrl}</a>
+            <button
+              className="toggle-button min-h-[36px] px-3 py-1"
+              onClick={async () => {
+                const ok = await writeClipboard(shareUrl)
+                setShareMsg(ok ? '共有URLをコピーしました。' : '共有URLを表示しています。')
+              }}
+              type="button"
+            >コピー</button>
+          </div>
+        )}
+      </div>
+
       {/* メインコンテンツ */}
-      <main className="max-w-5xl mx-auto px-4 py-3 grid gap-3 lg:grid-cols-2">
+      <main className="max-w-[1500px] mx-auto px-4 py-3 grid gap-3 lg:grid-cols-2">
         {/* ── 左カラム ───────────────────────── */}
         <div className="space-y-3">
           {/* サービス区分 */}
@@ -193,6 +342,21 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
               onChange={setServiceType}
               cols="grid-cols-2"
             />
+            {serviceType === 'specific' && (
+              <div className="mt-3">
+                <label className={fieldLabel}>種目</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className={baseInput}
+                >
+                  <option value="">選択</option>
+                  {SPECIFIC_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* 基本情報 */}
@@ -273,35 +437,13 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
               {serviceType === 'housing' && (
                 <div>
                   <label className={fieldLabel}>施工業者</label>
-                  <select
-                    value={contractorManual ? '__other__' : contractor}
-                    onChange={(e) => {
-                      const v = e.target.value
-                      if (v === '__other__') {
-                        setContractorManual(true)
-                        setContractor('')
-                      } else {
-                        setContractorManual(false)
-                        setContractor(v)
-                      }
-                    }}
+                  <input
+                    type="text"
+                    value={contractor}
+                    onChange={(e) => setContractor(e.target.value)}
+                    placeholder="施工業者名を入力"
                     className={baseInput}
-                  >
-                    <option value="">選択</option>
-                    {contractorOptions.map((n) => (
-                      <option key={n} value={n}>{n}</option>
-                    ))}
-                    <option value="__other__">その他（手入力）</option>
-                  </select>
-                  {contractorManual && (
-                    <input
-                      type="text"
-                      value={contractor}
-                      onChange={(e) => setContractor(e.target.value)}
-                      placeholder="施工業者名を入力"
-                      className={`${baseInput} mt-1`}
-                    />
-                  )}
+                  />
                 </div>
               )}
             </div>
@@ -362,21 +504,19 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
             </div>
           </div>
 
-          {/* 介護保険残額 */}
+          {/* 介護保険残高 */}
           <div className={card}>
-            <button
-              type="button"
-              onClick={() => setShowBalance((v) => !v)}
-              className="w-full flex items-center justify-between"
-            >
-              <p className={`${sectionTitle} mb-0`}>介護保険残額</p>
-              <span className="text-xs text-slate-400">{showBalance ? '▲' : '▼'}</span>
-            </button>
-            {showBalance && (
-              <div className="mt-2">
-                <MoneyInput value={remaining} onChange={setRemaining} />
-              </div>
-            )}
+            <p className={`${sectionTitle} mb-2`}>介護保険残高</p>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-bold text-slate-500">¥</span>
+              <input
+                type="number"
+                value={remaining || ''}
+                onChange={(e) => setRemaining(Number(e.target.value) || 0)}
+                placeholder="0"
+                className={`${baseInput} ${noSpin} h-14 pl-8 pr-3 text-right text-3xl font-extrabold tracking-tight`}
+              />
+            </div>
           </div>
         </div>
 
@@ -618,6 +758,12 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
             <th className="border border-slate-500 bg-slate-50 px-1.5 py-1 text-left text-[10px] leading-tight">発行日</th>
             <td className="border border-slate-500 px-2 py-1">{issueDate}</td>
           </tr>
+          {serviceType === 'specific' && (
+            <tr>
+              <th className="border border-slate-500 bg-slate-50 px-1.5 py-1 text-left text-[10px] leading-tight">種目</th>
+              <td className="border border-slate-500 px-2 py-1" colSpan={3}>{category}</td>
+            </tr>
+          )}
           <tr>
             <th className="border border-slate-500 bg-slate-50 px-1.5 py-1 text-left text-[10px] leading-tight">担当者</th>
             <td className="border border-slate-500 px-2 py-1">{staff}</td>
@@ -687,7 +833,7 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
               </>
             )}
             <th className="border border-slate-500 px-1.5 py-1 text-right">金額(税込)</th>
-            <th className="border border-slate-500 px-1.5 py-1 text-right">金額(税抜)</th>
+            {showExTax && <th className="border border-slate-500 px-1.5 py-1 text-right">金額(税抜)</th>}
             {hasCost && <th className="border border-slate-500 px-1.5 py-1 text-right">仕切り(税込)</th>}
           </tr>
         </thead>
@@ -703,7 +849,9 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
                 </>
               )}
               <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(item.amount)}</td>
-              <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(exTax(item.amount))}</td>
+              {showExTax && (
+                <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(exTax(item.amount))}</td>
+              )}
               {hasCost && (
                 <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(item.cost)}</td>
               )}
@@ -731,13 +879,13 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
         <colgroup>
           <col />
           <col style={{ width: '25%' }} />
-          <col style={{ width: '25%' }} />
+          {showExTax && <col style={{ width: '25%' }} />}
         </colgroup>
         <thead>
           <tr className="bg-slate-50">
             <th className="border border-slate-500 px-2 py-1 text-left">項目</th>
             <th className="border border-slate-500 px-2 py-1 text-right">税込</th>
-            <th className="border border-slate-500 px-2 py-1 text-right">税抜</th>
+            {showExTax && <th className="border border-slate-500 px-2 py-1 text-right">税抜</th>}
           </tr>
         </thead>
         <tbody>
@@ -745,13 +893,17 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
             <tr key={label}>
               <td className="border border-slate-500 px-2 py-1">{label}</td>
               <td className="border border-slate-500 px-2 py-1 text-right">{fmt(val)}</td>
-              <td className="border border-slate-500 px-2 py-1 text-right">{fmt(exTax(val))}</td>
+              {showExTax && (
+                <td className="border border-slate-500 px-2 py-1 text-right">{fmt(exTax(val))}</td>
+              )}
             </tr>
           ))}
           <tr className="border border-slate-500 bg-blue-50 font-bold">
             <td className="border border-slate-500 px-2 py-1">ご利用者お支払い合計</td>
             <td className="border border-slate-500 px-2 py-1 text-right">{fmt(calc.totalUserBurden)}</td>
-            <td className="border border-slate-500 px-2 py-1 text-right">{fmt(exTax(calc.totalUserBurden))}</td>
+            {showExTax && (
+              <td className="border border-slate-500 px-2 py-1 text-right">{fmt(exTax(calc.totalUserBurden))}</td>
+            )}
           </tr>
         </tbody>
       </table>

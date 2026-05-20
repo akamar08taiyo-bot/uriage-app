@@ -4,9 +4,14 @@ import { printDoc } from '../print.js'
 /* ── 定数 ─────────────────────────────────── */
 const orderTypes = ['販売', '給付', '在庫', '受領委任', '償還']
 const stockTypes = ['有', '移動', '発注(自社・直送)']
-const catalogTypes = ['介援隊', '夢ライフ', 'ALL LIFE', '他']
+const catalogTypes = ['介援隊', '夢ライフ', 'ALL LIFE', 'ナビス', '他']
+// カタログ→発注先の自動補完マップ
+const catalogToSupplier = {
+  '介援隊': 'ケアマックス',
+  '夢ライフ': 'ウェルファン',
+}
 const orderFormLinks = [
-  { label: '海援隊 ウェブ発注', href: 'https://www.kaientai.cc/login.aspx' },
+  { label: '介援隊 ウェブ発注', href: 'https://www.kaientai.cc/login.aspx' },
   { label: 'ウェルファン ウェブ発注', href: 'https://www.welfan.shop/' },
 ]
 const catalogLinks = [
@@ -71,6 +76,8 @@ const blankOrder = () => ({
   catalogOrderCode: '',
   benefitAmount: '',
   checklist: [],
+  remarksTop: '',
+  remarksBottom: '',
 })
 
 const numberValue = (value) => Number(String(value || '').replace(/,/g, '')) || 0
@@ -563,6 +570,20 @@ export default function JuchuBo({ staffList = [] }) {
             <button className="toggle-button" onClick={copyLink} type="button">
               共有リンク
             </button>
+            <button
+              className="toggle-button !border-red-300 !text-red-700 hover:!bg-red-50"
+              onClick={() => {
+                if (window.confirm('入力内容をすべて削除します。よろしいですか？')) {
+                  setOrder(blankOrder())
+                  setOrderId('')
+                  setShareUrl('')
+                  setMessage('入力内容を削除しました。')
+                }
+              }}
+              type="button"
+            >
+              全削除
+            </button>
             <button className="toggle-button active" onClick={saveOrder} type="button">
               保存
             </button>
@@ -655,13 +676,13 @@ export default function JuchuBo({ staffList = [] }) {
               <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="発注番号">
                 <input className="input" onChange={(e) => patch('purchaseOrderNumber', e.target.value)} value={order.purchaseOrderNumber} />
               </Field>
-              <Field className="col-span-12 md:col-span-3 xl:col-span-1" label="発注者">
+              <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="発注者">
                 <input className="input" onChange={(e) => patch('orderer', e.target.value)} value={order.orderer} />
               </Field>
-              <Field className="col-span-12 md:col-span-3 xl:col-span-1" label="入荷日">
+              <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="入荷日">
                 <input className="input" onChange={(e) => patch('arrivalDate', e.target.value)} type="date" value={order.arrivalDate} />
               </Field>
-              <Field className="col-span-12 md:col-span-3 xl:col-span-1" label="入荷確認">
+              <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="入荷確認">
                 <label className="check-tile">
                   <input checked={order.arrivalConfirmed} onChange={(e) => patch('arrivalConfirmed', e.target.checked)} type="checkbox" />
                   <span>確認済</span>
@@ -671,10 +692,37 @@ export default function JuchuBo({ staffList = [] }) {
           </div>
 
           <div className="section-card">
+            <div className="section-heading">備考（申込情報・上段）</div>
+            <div className="p-3">
+              <textarea
+                className="input min-h-[60px]"
+                rows={2}
+                placeholder="申込情報に関する備考を入力"
+                value={order.remarksTop}
+                onChange={(e) => patch('remarksTop', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="section-card">
             <div className="section-heading">カタログ情報</div>
             <div className="grid grid-cols-12 gap-3 p-3">
               <Field className="col-span-12 md:col-span-6 xl:col-span-3" label="カタログ">
-                <ToggleGroup onChange={(value) => patch('catalog', value)} options={catalogTypes} value={order.catalog} />
+                <ToggleGroup
+                  onChange={(value) => {
+                    setOrder((current) => {
+                      const next = { ...current, catalog: value }
+                      const auto = catalogToSupplier[value]
+                      // 発注先が空、または前回の自動補完値だった場合は上書き（手入力は尊重）
+                      if (auto && (!current.supplierOrMoveFrom || Object.values(catalogToSupplier).includes(current.supplierOrMoveFrom))) {
+                        next.supplierOrMoveFrom = auto
+                      }
+                      return next
+                    })
+                  }}
+                  options={catalogTypes}
+                  value={order.catalog}
+                />
               </Field>
               <Field className="col-span-12 md:col-span-6 xl:col-span-3" label="カタログ参照リンク">
                 <div className="flex flex-wrap items-center gap-2">
@@ -721,10 +769,23 @@ export default function JuchuBo({ staffList = [] }) {
                 <Field className="col-span-4 md:col-span-2 xl:col-span-1" label="ページ">
                   <input className="input" onChange={(e) => patch('catalogPage', e.target.value)} value={order.catalogPage} />
                 </Field>
-                <Field className="col-span-12 md:col-span-8 xl:col-span-10" label="申込№・注文ｺｰﾄﾞ">
+                <Field className="col-span-12 md:col-span-4 xl:col-span-3" label="申込№・注文ｺｰﾄﾞ">
                   <input className="input" onChange={(e) => patch('catalogOrderCode', e.target.value)} value={order.catalogOrderCode} />
                 </Field>
               </div>
+            </div>
+          </div>
+
+          <div className="section-card">
+            <div className="section-heading">備考（最下段）</div>
+            <div className="p-3">
+              <textarea
+                className="input min-h-[80px]"
+                rows={3}
+                placeholder="その他連絡事項などの備考"
+                value={order.remarksBottom}
+                onChange={(e) => patch('remarksBottom', e.target.value)}
+              />
             </div>
           </div>
 
