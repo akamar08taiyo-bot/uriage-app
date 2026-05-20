@@ -52,6 +52,7 @@ const blankItem = () => ({
 const blankOrder = () => ({
   orderDate: '',
   orderType: '販売',
+  salesOffice: '',
   salesRepName: '',
   requester: '',
   customerName: '',
@@ -324,8 +325,8 @@ function PrintDocument({ order, total }) {
             <td className="value-cell">{text(orderDate)}</td>
             <th>受注区分</th>
             <td className="value-cell">{text(order.orderType)}</td>
-            <th>担当営業</th>
-            <td className="value-cell">{text(order.salesRepName)}</td>
+            <th>営業所/担当</th>
+            <td className="value-cell">{text([order.salesOffice, order.salesRepName].filter(Boolean).join(' / '))}</td>
             <th>納品予定日</th>
             <td className="value-cell">{text(order.deliveryDate)}</td>
           </tr>
@@ -462,7 +463,10 @@ function PrintDocument({ order, total }) {
 }
 
 /* ── メインコンポーネント ─────────────────────── */
-export default function JuchuBo({ staffList = [] }) {
+export default function JuchuBo({ master = { offices: [], staff: [], orderers: [] } }) {
+  const staffList = master.staff || []
+  const officeList = master.offices || []
+  const ordererList = master.orderers || []
   const [order, setOrder] = useState(blankOrder)
   const [orderId, setOrderId] = useState('')
   const [message, setMessage] = useState('')
@@ -579,9 +583,6 @@ export default function JuchuBo({ staffList = [] }) {
             >
               全削除
             </button>
-            <button className="toggle-button active" onClick={saveOrder} type="button">
-              保存
-            </button>
           </div>
         </div>
 
@@ -618,9 +619,21 @@ export default function JuchuBo({ staffList = [] }) {
               <Field className="col-span-12 md:col-span-8 xl:col-span-4" label="受注区分">
                 <ToggleGroup onChange={(value) => patch('orderType', value)} options={orderTypes} value={order.orderType} />
               </Field>
-              <Field className="col-span-12 xl:col-span-6" label="担当営業">
+              <Field className="col-span-12 md:col-span-6 xl:col-span-3" label="営業所">
+                <select
+                  className="input"
+                  value={order.salesOffice}
+                  onChange={(e) => patch('salesOffice', e.target.value)}
+                >
+                  <option value="">{officeList.length ? '選択' : '（マスタ未登録）'}</option>
+                  {officeList.filter((n) => (n || '').trim()).map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field className="col-span-12 xl:col-span-3" label="営業担当">
                 <ToggleGroup
-                  emptyText="マスタ設定から担当者を登録してください"
+                  emptyText="マスタ設定から営業担当を登録してください"
                   onChange={(value) => patch('salesRepName', value)}
                   options={staffOptions}
                   value={order.salesRepName}
@@ -678,7 +691,17 @@ export default function JuchuBo({ staffList = [] }) {
                 <input className="input" onChange={(e) => patch('purchaseOrderNumber', e.target.value)} value={order.purchaseOrderNumber} />
               </Field>
               <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="発注者">
-                <input className="input" onChange={(e) => patch('orderer', e.target.value)} value={order.orderer} />
+                <input
+                  className="input"
+                  list="juchu-orderer-list"
+                  onChange={(e) => patch('orderer', e.target.value)}
+                  value={order.orderer}
+                />
+                <datalist id="juchu-orderer-list">
+                  {ordererList.filter((n) => (n || '').trim()).map((n) => (
+                    <option key={n} value={n} />
+                  ))}
+                </datalist>
               </Field>
               <Field className="col-span-12 md:col-span-3 xl:col-span-2" label="入荷日">
                 <input className="input" onChange={(e) => patch('arrivalDate', e.target.value)} type="date" value={order.arrivalDate} />

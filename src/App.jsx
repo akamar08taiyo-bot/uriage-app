@@ -2,13 +2,62 @@ import { useState, useEffect } from 'react'
 import UriageDenpyo from './components/UriageDenpyo.jsx'
 import JuchuBo from './components/JuchuBo.jsx'
 
-const STAFF_LIST = ['久保', '土居', '宮村', '信田']
-const OFFICE_NAME = '太陽シルバーサービス株式会社 行橋営業所'
+// マスタ：デフォルトは空。タブごとに項目を持つ。
+const JUCHU_MASTER_KEY = 'juchu_master_v1'
+const URIAGE_MASTER_KEY = 'uriage_master_v1'
+
+function loadMaster(key, fallback) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key) || 'null')
+    if (v && typeof v === 'object') return { ...fallback, ...v }
+  } catch {}
+  return fallback
+}
+
+function MasterListInput({ items, onChange, placeholder }) {
+  const list = items.length ? items : ['']
+  const update = (i, v) => onChange(list.map((n, idx) => (idx === i ? v : n)).filter((_, idx) => idx !== i || v !== '' || list.length === 1))
+  const remove = (i) => onChange(list.filter((_, idx) => idx !== i))
+  const add = () => onChange([...items, ''])
+  return (
+    <div>
+      <div className="space-y-1">
+        {list.map((name, i) => (
+          <div className="flex gap-1" key={i}>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => update(i, e.target.value)}
+              className="flex-1 h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder={placeholder}
+            />
+            <button
+              type="button"
+              onClick={() => remove(i)}
+              className="h-9 w-9 rounded-lg text-xs text-red-400 hover:bg-red-50 transition"
+            >×</button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={add} className="mt-1 text-xs text-blue-600 hover:text-blue-800">＋ 追加</button>
+    </div>
+  )
+}
 
 export default function App() {
   const [tab, setTab] = useState(() => (/#\/?uriage/.test(location.hash) ? 'uriage' : 'juchu'))
   const [zoom, setZoom] = useState(() => Number(localStorage.getItem('fukushi_zoom')) || 120)
+  const [showMaster, setShowMaster] = useState(false)
 
+  const [juchuMaster, setJuchuMaster] = useState(() =>
+    loadMaster(JUCHU_MASTER_KEY, { offices: [], staff: [], orderers: [] }),
+  )
+  const [uriageMaster, setUriageMaster] = useState(() =>
+    loadMaster(URIAGE_MASTER_KEY, { offices: [], salesPersons: [], contractors: [] }),
+  )
+
+  useEffect(() => { localStorage.setItem(JUCHU_MASTER_KEY, JSON.stringify(juchuMaster)) }, [juchuMaster])
+  useEffect(() => { localStorage.setItem(URIAGE_MASTER_KEY, JSON.stringify(uriageMaster)) }, [uriageMaster])
   useEffect(() => {
     localStorage.setItem('fukushi_zoom', zoom)
     document.documentElement.style.fontSize = `${zoom}%`
@@ -16,6 +65,9 @@ export default function App() {
 
   const zoomUp = () => setZoom((z) => Math.min(z + 10, 200))
   const zoomDown = () => setZoom((z) => Math.max(z - 10, 80))
+
+  const updateJuchu = (key, list) => setJuchuMaster((m) => ({ ...m, [key]: list }))
+  const updateUriage = (key, list) => setUriageMaster((m) => ({ ...m, [key]: list }))
 
   const tabClass = (id) =>
     `relative h-12 px-7 text-sm font-extrabold transition border-b-[3px] -mb-px ${
@@ -38,18 +90,22 @@ export default function App() {
                 type="button"
                 onClick={zoomDown}
                 className="w-6 h-6 rounded bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold flex items-center justify-center transition"
-              >
-                −
-              </button>
+              >−</button>
               <span className="text-[10px] text-blue-100 w-8 text-center">{zoom}%</span>
               <button
                 type="button"
                 onClick={zoomUp}
                 className="w-6 h-6 rounded bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold flex items-center justify-center transition"
-              >
-                ＋
-              </button>
+              >＋</button>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowMaster((v) => !v)}
+              className="flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-bold bg-white text-blue-700 hover:bg-blue-50 transition"
+            >
+              <span className="text-sm">⚙</span>
+              {showMaster ? 'マスタを閉じる' : 'マスタ設定'}
+            </button>
           </div>
         </div>
         {/* タブバー */}
@@ -65,12 +121,66 @@ export default function App() {
         </nav>
       </header>
 
+      {/* マスタ設定パネル */}
+      {showMaster && (
+        <div className="max-w-[1500px] mx-auto px-4 pt-3 print:hidden">
+          <div className="bg-white rounded-xl shadow-sm ring-1 ring-slate-200/70 p-4 grid gap-5 md:grid-cols-2">
+            <div className="space-y-4">
+              <h2 className="text-sm font-extrabold text-slate-700 border-b border-slate-200 pb-1">
+                販売受注簿
+              </h2>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">営業所</label>
+                <MasterListInput items={juchuMaster.offices} onChange={(v) => updateJuchu('offices', v)} placeholder="営業所名" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">営業担当</label>
+                <MasterListInput items={juchuMaster.staff} onChange={(v) => updateJuchu('staff', v)} placeholder="営業担当名" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">発注者</label>
+                <MasterListInput items={juchuMaster.orderers} onChange={(v) => updateJuchu('orderers', v)} placeholder="発注者名" />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-sm font-extrabold text-slate-700 border-b border-slate-200 pb-1">
+                売上伝票発行依頼書
+              </h2>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">営業所</label>
+                <MasterListInput items={uriageMaster.offices} onChange={(v) => updateUriage('offices', v)} placeholder="営業所名" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">営業員</label>
+                <MasterListInput items={uriageMaster.salesPersons} onChange={(v) => updateUriage('salesPersons', v)} placeholder="営業員名" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">施工業者</label>
+                <MasterListInput items={uriageMaster.contractors} onChange={(v) => updateUriage('contractors', v)} placeholder="施工業者名" />
+              </div>
+            </div>
+            <div className="md:col-span-2 pt-2 border-t border-slate-100">
+              <p className="text-[11px] text-slate-400 mb-2">
+                ※ 入力は必須ではありません。空欄のまま運用できます。設定内容はこのパソコンに保存されます。
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowMaster(false)}
+                className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
+              >
+                確定して閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* タブ内容（両方マウントしたまま表示切替＝入力内容を保持） */}
       <div className={tab === 'juchu' ? 'p-3 print:p-0' : 'hidden'}>
-        <JuchuBo staffList={STAFF_LIST} />
+        <JuchuBo master={juchuMaster} />
       </div>
       <div className={tab === 'uriage' ? '' : 'hidden'}>
-        <UriageDenpyo staffList={STAFF_LIST} officeMaster={OFFICE_NAME} />
+        <UriageDenpyo master={uriageMaster} />
       </div>
     </div>
   )

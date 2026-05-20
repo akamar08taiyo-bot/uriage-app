@@ -105,7 +105,11 @@ function MoneyInput({ value, onChange, placeholder }) {
 }
 
 /* ── メインコンポーネント ─────────────────────── */
-export default function UriageDenpyo({ staffList = [], officeMaster = '', contractorList = [] }) {
+export default function UriageDenpyo({ master = { offices: [], salesPersons: [], contractors: [] } }) {
+  const staffList = master.salesPersons || []
+  const officeList = master.offices || []
+  const contractorList = master.contractors || []
+  const [salesOffice, setSalesOffice] = useState('')
   const today = new Date().toISOString().slice(0, 10)
 
   /* state */
@@ -152,6 +156,7 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
     if (!s) return
     if (s.serviceType) setServiceType(s.serviceType)
     if (s.issueDate) setIssueDate(s.issueDate)
+    if (typeof s.salesOffice === 'string') setSalesOffice(s.salesOffice)
     if (typeof s.customerName === 'string') setCustomerName(s.customerName)
     if (typeof s.customerAddress === 'string') setCustomerAddress(s.customerAddress)
     if (typeof s.officeName === 'string') setOfficeName(s.officeName)
@@ -221,7 +226,7 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
   /* 共有リンク・メール・全削除 */
   function snapshotSales() {
     return {
-      serviceType, issueDate, customerName, customerAddress, officeName, careManager,
+      serviceType, issueDate, salesOffice, customerName, customerAddress, officeName, careManager,
       customerType, billingType, careLevel, userRatio, remaining,
       items, miyakoChecked, showExTax, staff, isSelfPay, showDetail, contractor, category,
       total, totalUserBurden: calc.totalUserBurden,
@@ -281,6 +286,7 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
     setContractorManual(false)
     setCategory('')
     setShareUrl('')
+    setSalesOffice('')
     setShareMsg('入力内容を削除しました。')
   }
 
@@ -363,7 +369,7 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
           <div className={card}>
             <p className={sectionTitle}>基本情報</p>
             <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className={fieldLabel}>発行日</label>
                   <input
@@ -374,15 +380,26 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
                   />
                 </div>
                 <div>
-                  <label className={fieldLabel}>
-                    担当者 <span className="text-red-400">*</span>
-                  </label>
+                  <label className={fieldLabel}>営業所</label>
+                  <select
+                    value={salesOffice}
+                    onChange={(e) => setSalesOffice(e.target.value)}
+                    className={baseInput}
+                  >
+                    <option value="">{officeList.length ? '選択' : '（マスタ未登録）'}</option>
+                    {officeList.filter((n) => (n || '').trim()).map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={fieldLabel}>営業員 <span className="text-red-400">*</span></label>
                   <select
                     value={staff}
                     onChange={(e) => setStaff(e.target.value)}
                     className={`${baseInput} ${triedPrint && !staff ? 'border-red-400 ring-2 ring-red-100' : ''}`}
                   >
-                    <option value="">選択</option>
+                    <option value="">{staffOptions.length ? '選択' : '（マスタ未登録）'}</option>
                     {staffOptions.map((n) => (
                       <option key={n} value={n}>{n}</option>
                     ))}
@@ -439,11 +456,17 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
                   <label className={fieldLabel}>施工業者</label>
                   <input
                     type="text"
+                    list="uriage-contractor-list"
                     value={contractor}
                     onChange={(e) => setContractor(e.target.value)}
-                    placeholder="施工業者名を入力"
+                    placeholder={contractorList.length ? '入力 / 候補から選択' : '施工業者名を入力'}
                     className={baseInput}
                   />
+                  <datalist id="uriage-contractor-list">
+                    {contractorList.filter((n) => (n || '').trim()).map((n) => (
+                      <option key={n} value={n} />
+                    ))}
+                  </datalist>
                 </div>
               )}
             </div>
@@ -714,7 +737,7 @@ export default function UriageDenpyo({ staffList = [], officeMaster = '', contra
     <div className="uriage-print hidden print:block p-0 text-[11px]">
       {/* 印刷ヘッダー */}
       <div className="text-center mb-4">
-        <p className="text-xs text-slate-500">{officeMaster}</p>
+        <p className="text-xs text-slate-500">{salesOffice}</p>
         <h1 className="text-base font-bold mt-1">売上伝票発行依頼書</h1>
       </div>
 
