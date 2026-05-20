@@ -236,18 +236,11 @@ export default function UriageDenpyo({ master = { offices: [], salesPersons: [],
     const payload = encodePayload({ kind: 'uriage', sales: snapshotSales() })
     return `${location.origin}${location.pathname}#/uriage?payload=${payload}`
   }
-  async function getShareUrl() {
-    setShareMsg('短縮URLを生成中…')
-    const longUrl = buildLongShareUrl()
-    const short = await shortenUrl(longUrl)
-    setShareUrl(short)
-    return { longUrl, shortUrl: short, shortened: short !== longUrl }
-  }
   async function copyShareLink() {
-    const { shortUrl, shortened } = await getShareUrl()
-    const copied = await writeClipboard(shortUrl)
-    const label = shortened ? '短縮URL' : '共有URL'
-    setShareMsg(copied ? `${label}をクリップボードにコピーしました。` : `${label}を下に表示しました。`)
+    const longUrl = buildLongShareUrl()
+    setShareUrl(longUrl)
+    const copied = await writeClipboard(longUrl)
+    setShareMsg(copied ? '共有URLをクリップボードにコピーしました。' : '共有URLを下に表示しました。')
   }
   function createMail() {
     // メール用は短縮しない長いURLをそのまま使用

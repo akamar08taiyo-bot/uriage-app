@@ -512,23 +512,14 @@ export default function JuchuBo({ master = { offices: [], staff: [], orderers: [
     return { id, url: buildShareUrl(data) }
   }
 
-  // 保存＋共有URL生成（可能なら短縮）
-  async function getShareUrl() {
-    const { url: longUrl } = persistOrder()
-    setMessage('短縮URLを生成中…')
-    const short = await shortenUrl(longUrl)
-    setShareUrl(short)
-    return { longUrl, shortUrl: short, shortened: short !== longUrl }
-  }
-
   async function saveOrder() {
-    const { shortUrl, shortened } = await getShareUrl()
-    const copied = await writeClipboard(shortUrl)
-    const label = shortened ? '短縮URL' : '共有URL'
+    const { url } = persistOrder()
+    setShareUrl(url)
+    const copied = await writeClipboard(url)
     setMessage(
       copied
-        ? `保存しました。${label}をクリップボードにコピーしました。`
-        : `保存しました。${label}を下に表示しました。`,
+        ? '共有URLをクリップボードにコピーしました。'
+        : '共有URLを下に表示しました。',
     )
   }
 
