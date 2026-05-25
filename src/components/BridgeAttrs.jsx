@@ -39,8 +39,9 @@ export default function BridgeAttrs({ bridge, setBridge }) {
   const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
 
   return (
-    <div className="grid grid-cols-12 gap-4">
-      <div className="col-span-12">
+    <div className="grid grid-cols-12 gap-3">
+      {/* サービス区分 */}
+      <div className="col-span-12 md:col-span-4">
         <span className="field-label">サービス区分</span>
         <ToggleButtons
           options={[{ value: 'housing', label: '住宅改修' }, { value: 'specific', label: '特定福祉用具' }]}
@@ -56,6 +57,34 @@ export default function BridgeAttrs({ bridge, setBridge }) {
         />
       </div>
 
+      {/* 介護保険残高 */}
+      <div className="col-span-12 md:col-span-4">
+        <span className="field-label">介護保険残高</span>
+        <input
+          type="number"
+          className="input h-11 text-right text-lg font-extrabold"
+          value={bridge.remaining || ''}
+          onChange={(e) => patch('remaining', Number(e.target.value) || 0)}
+        />
+      </div>
+
+      {/* 施工業者（住宅改修のみ） */}
+      <div className="col-span-12 md:col-span-4">
+        {bridge.serviceType === 'housing' ? (
+          <>
+            <span className="field-label">施工業者</span>
+            <input
+              type="text"
+              className="input h-11"
+              value={bridge.contractor || ''}
+              placeholder="施工業者名"
+              onChange={(e) => patch('contractor', e.target.value)}
+            />
+          </>
+        ) : null}
+      </div>
+
+      {/* 明細 */}
       <div className="col-span-12">
         <span className="field-label">明細（金額{hasCost ? '／仕切り' : ''}）</span>
         <div className="space-y-1">
@@ -78,11 +107,14 @@ export default function BridgeAttrs({ bridge, setBridge }) {
                   onChange={(e) => updateItem(i, 'cost', Number(e.target.value) || 0)}
                 />
               )}
+              <span className="ml-2 text-xs text-slate-500">
+                合計: <span className="font-extrabold text-slate-700">{fmtYen(total)}</span>
+              </span>
               {items.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeItem(i)}
-                  className="h-8 w-8 text-red-400 hover:bg-red-50 rounded"
+                  className="ml-auto h-8 w-8 text-red-400 hover:bg-red-50 rounded"
                 >×</button>
               )}
             </div>
@@ -91,10 +123,10 @@ export default function BridgeAttrs({ bridge, setBridge }) {
         <button type="button" onClick={addItem} className="mt-1 text-xs text-blue-600 hover:text-blue-800">
           ＋ 明細追加
         </button>
-        <p className="mt-1 text-xs text-slate-500">合計: <span className="font-extrabold text-slate-700">{fmtYen(total)}</span></p>
       </div>
 
-      <div className="col-span-12 md:col-span-6">
+      {/* 顧客区分・請求区分・全額自費 を 1 行に */}
+      <div className="col-span-12 md:col-span-4">
         <span className="field-label">顧客区分</span>
         <ToggleButtons
           options={[{ value: 'new', label: '新規' }, { value: 'existing', label: '既存' }]}
@@ -102,8 +134,7 @@ export default function BridgeAttrs({ bridge, setBridge }) {
           onChange={(v) => patch('customerType', v)}
         />
       </div>
-
-      <div className="col-span-12 md:col-span-6">
+      <div className="col-span-12 md:col-span-5">
         <span className="field-label">請求区分</span>
         <ToggleButtons
           options={[{ value: 'receipt', label: '受領委任払い' }, { value: 'reimbursement', label: '償還払い' }]}
@@ -111,13 +142,25 @@ export default function BridgeAttrs({ bridge, setBridge }) {
           onChange={(v) => patch('billingType', v)}
         />
       </div>
+      <div className="col-span-12 md:col-span-3 flex items-end">
+        <label className="check-tile inline-flex items-center gap-2 w-full justify-center">
+          <input
+            type="checkbox"
+            checked={Boolean(bridge.isSelfPay)}
+            onChange={(e) => patch('isSelfPay', e.target.checked)}
+          />
+          <span>全額自費</span>
+        </label>
+      </div>
 
+      {/* 介護度 */}
       <div className="col-span-12">
         <span className="field-label">介護度</span>
         <ToggleButtons options={CARE_LEVELS} value={bridge.careLevel} onChange={(v) => patch('careLevel', v)} />
       </div>
 
-      <div className="col-span-12 md:col-span-6">
+      {/* 負担割合 */}
+      <div className="col-span-12">
         <span className="field-label">負担割合</span>
         <ToggleButtons
           options={[
@@ -129,40 +172,6 @@ export default function BridgeAttrs({ bridge, setBridge }) {
           onChange={(v) => patch('userRatio', v)}
         />
       </div>
-
-      <div className="col-span-12 md:col-span-6 flex items-end">
-        <label className="check-tile inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={Boolean(bridge.isSelfPay)}
-            onChange={(e) => patch('isSelfPay', e.target.checked)}
-          />
-          <span>全額自費</span>
-        </label>
-      </div>
-
-      <div className="col-span-12 md:col-span-6">
-        <span className="field-label">介護保険残高</span>
-        <input
-          type="number"
-          className="input h-12 text-right text-xl font-extrabold"
-          value={bridge.remaining || ''}
-          onChange={(e) => patch('remaining', Number(e.target.value) || 0)}
-        />
-      </div>
-
-      {bridge.serviceType === 'housing' && (
-        <div className="col-span-12 md:col-span-6">
-          <span className="field-label">施工業者</span>
-          <input
-            type="text"
-            className="input"
-            value={bridge.contractor || ''}
-            placeholder="施工業者名"
-            onChange={(e) => patch('contractor', e.target.value)}
-          />
-        </div>
-      )}
     </div>
   )
 }
