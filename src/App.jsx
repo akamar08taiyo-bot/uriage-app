@@ -5,6 +5,21 @@ import JuchuBo from './components/JuchuBo.jsx'
 // マスタ：デフォルトは空。タブごとに項目を持つ。
 const JUCHU_MASTER_KEY = 'juchu_master_v1'
 const URIAGE_MASTER_KEY = 'uriage_master_v1'
+// 受注簿の「特例」セクションの状態（住宅改修・特定福祉用具用）。
+// このオブジェクトに入力した内容は売上伝票発行依頼書に自動転記される。
+const BRIDGE_KEY = 'attr_bridge_v1'
+const defaultBridge = {
+  enabled: false,
+  serviceType: 'housing',
+  items: [{ id: 1, amount: 0, cost: 0 }],
+  customerType: 'new',
+  billingType: 'receipt',
+  careLevel: '介護１',
+  userRatio: 0.1,
+  isSelfPay: false,
+  remaining: 200000,
+  contractor: '',
+}
 
 function loadMaster(key, fallback) {
   try {
@@ -55,6 +70,14 @@ export default function App() {
   const [uriageMaster, setUriageMaster] = useState(() =>
     loadMaster(URIAGE_MASTER_KEY, { offices: [], salesPersons: [], contractors: [] }),
   )
+  const [bridge, setBridge] = useState(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(BRIDGE_KEY) || 'null')
+      if (v && typeof v === 'object') return { ...defaultBridge, ...v }
+    } catch {}
+    return defaultBridge
+  })
+  useEffect(() => { localStorage.setItem(BRIDGE_KEY, JSON.stringify(bridge)) }, [bridge])
 
   useEffect(() => { localStorage.setItem(JUCHU_MASTER_KEY, JSON.stringify(juchuMaster)) }, [juchuMaster])
   useEffect(() => { localStorage.setItem(URIAGE_MASTER_KEY, JSON.stringify(uriageMaster)) }, [uriageMaster])
@@ -177,10 +200,10 @@ export default function App() {
 
       {/* タブ内容（両方マウントしたまま表示切替＝入力内容を保持） */}
       <div className={tab === 'juchu' ? 'p-3 print:p-0' : 'hidden'}>
-        <JuchuBo master={juchuMaster} />
+        <JuchuBo master={juchuMaster} bridge={bridge} setBridge={setBridge} />
       </div>
       <div className={tab === 'uriage' ? '' : 'hidden'}>
-        <UriageDenpyo master={uriageMaster} />
+        <UriageDenpyo master={uriageMaster} bridge={bridge} />
       </div>
     </div>
   )

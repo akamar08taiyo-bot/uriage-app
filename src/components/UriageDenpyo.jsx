@@ -105,7 +105,10 @@ function MoneyInput({ value, onChange, placeholder }) {
 }
 
 /* ── メインコンポーネント ─────────────────────── */
-export default function UriageDenpyo({ master = { offices: [], salesPersons: [], contractors: [] } }) {
+export default function UriageDenpyo({
+  master = { offices: [], salesPersons: [], contractors: [] },
+  bridge = null,
+}) {
   const staffList = master.salesPersons || []
   const officeList = master.offices || []
   const contractorList = master.contractors || []
@@ -148,6 +151,33 @@ export default function UriageDenpyo({ master = { offices: [], salesPersons: [],
     setItems([newItem()])
     if (serviceType !== 'specific') setCategory('')
   }, [serviceType])
+
+  /* 受注簿「特例」セクションからの自動転記 */
+  useEffect(() => {
+    if (!bridge || !bridge.enabled) return
+    if (bridge.serviceType) setServiceType(bridge.serviceType)
+    if (Array.isArray(bridge.items) && bridge.items.length) {
+      setItems(
+        bridge.items.map((b, i) => ({
+          id: b.id || Date.now() + i,
+          amount: Number(b.amount) || 0,
+          cost: Number(b.cost) || 0,
+          productName: '',
+          modelNumber: '',
+          colorSize: '',
+          color: '',
+          catalog: '',
+        })),
+      )
+    }
+    if (bridge.customerType) setCustomerType(bridge.customerType)
+    if (bridge.billingType) setBillingType(bridge.billingType)
+    if (bridge.careLevel) setCareLevel(bridge.careLevel)
+    if (typeof bridge.userRatio === 'number') setUserRatio(bridge.userRatio)
+    if (typeof bridge.isSelfPay === 'boolean') setIsSelfPay(bridge.isSelfPay)
+    if (typeof bridge.remaining === 'number') setRemaining(bridge.remaining)
+    if (typeof bridge.contractor === 'string') setContractor(bridge.contractor)
+  }, [bridge])
 
   /* 共有リンクから状態復元 */
   useEffect(() => {
@@ -295,6 +325,11 @@ export default function UriageDenpyo({ master = { offices: [], salesPersons: [],
     <div className="min-h-full bg-gradient-to-br from-slate-50 to-blue-50/30 print:hidden">
       {/* アクションバー */}
       <div className="max-w-[1500px] mx-auto px-4 pt-3">
+        {bridge && bridge.enabled && (
+          <div className="mb-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+            販売受注簿の特例入力から自動転記されています（受注簿タブ側で編集できます）
+          </div>
+        )}
         <div className="bg-white rounded-xl shadow-sm ring-1 ring-slate-200/70 px-3 py-2 flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold text-slate-500">操作:</span>
           <button type="button" onClick={createMail} className="h-9 px-3 rounded-lg text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50">メール作成</button>

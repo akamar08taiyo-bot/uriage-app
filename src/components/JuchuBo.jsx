@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { printDoc } from '../print.js'
+import BridgeAttrs from './BridgeAttrs.jsx'
 
 /* ── 定数 ─────────────────────────────────── */
 const orderTypes = ['販売', '給付', '在庫', '受領委任', '償還']
@@ -463,7 +464,11 @@ function PrintDocument({ order, total }) {
 }
 
 /* ── メインコンポーネント ─────────────────────── */
-export default function JuchuBo({ master = { offices: [], staff: [], orderers: [] } }) {
+export default function JuchuBo({
+  master = { offices: [], staff: [], orderers: [] },
+  bridge = null,
+  setBridge = () => {},
+}) {
   const staffList = master.staff || []
   const officeList = master.offices || []
   const ordererList = master.orderers || []
@@ -784,6 +789,30 @@ export default function JuchuBo({ master = { offices: [], staff: [], orderers: [
               </div>
             </div>
           </div>
+
+          {bridge && (
+            <div className="section-card">
+              <div className="section-heading" style={{ display: 'block' }}>
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-blue-600"
+                    checked={Boolean(bridge.enabled)}
+                    onChange={(e) => setBridge({ ...bridge, enabled: e.target.checked })}
+                  />
+                  <span>住宅改修・特定福祉用具として売上伝票発行依頼書へ自動転記する（特例）</span>
+                </label>
+              </div>
+              {bridge.enabled && (
+                <div className="p-3">
+                  <BridgeAttrs bridge={bridge} setBridge={setBridge} />
+                  <p className="mt-3 text-[11px] text-slate-500">
+                    ※ ここで入力した内容は「売上伝票発行依頼書」タブに自動転記されます。
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="section-card">
             <div className="section-heading">備考（最下段）</div>
