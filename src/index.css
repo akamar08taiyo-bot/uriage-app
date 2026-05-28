@@ -242,8 +242,8 @@ input[type=number] {
     width: 100%;
     color: #000;
     font-family: "Yu Gothic", "Meiryo", sans-serif;
-    font-size: 10px;
-    line-height: 1.25;
+    font-size: 12px;
+    line-height: 1.35;
     box-sizing: border-box;
   }
   .print-document table {
@@ -266,7 +266,7 @@ input[type=number] {
   .print-document th,
   .print-document td {
     border: 1.2px solid #000;
-    padding: 3px 5px;
+    padding: 5px 7px;
     vertical-align: middle;
     word-break: break-word;
   }
@@ -276,7 +276,7 @@ input[type=number] {
     text-align: center;
   }
   .print-document .sheet-title {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 900;
     text-align: center;
   }
@@ -315,13 +315,13 @@ input[type=number] {
   }
   .print-document .info-table td,
   .print-document .manage-table td {
-    height: 25px;
+    height: 32px;
   }
   .print-document .items-table th {
-    height: 23px;
+    height: 30px;
   }
   .print-document .items-table td {
-    height: 26px;
+    height: 34px;
   }
   .print-document .value-cell {
     min-height: 18px;
@@ -329,7 +329,7 @@ input[type=number] {
   }
   .print-document .amount-cell {
     text-align: right;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 900;
   }
   .print-document .check-grid {
@@ -346,9 +346,26 @@ input[type=number] {
   }
 
   /* 売上伝票発行依頼書 印刷 */
+  .uriage-print {
+    font-size: 13px !important;
+    line-height: 1.5;
+  }
   .uriage-print table {
     width: 100% !important;
     max-width: 100% !important;
     table-layout: fixed;
+  }
+  .uriage-print th,
+  .uriage-print td {
+    padding: 5px 7px !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+  .uriage-print h1 {
+    font-size: 22px !important;
+  }
+  .uriage-print .sheet-title,
+  .uriage-print .print-title {
+    font-size: 22px !important;
   }
 }

@@ -7,27 +7,17 @@ const DEFAULT_REMAINING = { housing: 200000, specific: 100000 }
 const CARE_LEVELS = ['支援１', '支援２', '介護１', '介護２', '介護３', '介護４', '介護５']
 const CATALOGS = ['ケアマックス', 'ウェルファン']
 const TAX = 1.1
-// 特定福祉用具の種目
+// 特定福祉用具の種目（複数選択可）
 const SPECIFIC_CATEGORIES = [
-  '腰掛便座',
-  '自動排泄処理装置の交換可能部品',
-  '排泄予測支援機器',
   '入浴補助用具',
-  '簡易浴槽',
-  '移動用リフトのつり具の部分',
-  '車いす',
-  '車いす付属品',
-  '特殊寝台',
-  '特殊寝台付属品',
-  '床ずれ防止用具',
-  '体位変換器',
-  '手すり',
+  '腰掛便座',
   'スロープ',
   '歩行器',
-  '歩行補助つえ',
-  '認知症老人徘徊感知機器',
-  '移動用リフト',
-  '自動排泄処理装置',
+  '歩行補助杖',
+  '移動用リフトのつり具',
+  '自動排泄処理装置の交換可能備品',
+  '排泄予測支援機器',
+  '簡易浴槽',
 ]
 
 let _seq = 0
@@ -137,7 +127,9 @@ export default function UriageDenpyo({
   const [showDetail, setShowDetail] = useState(false)
   const [contractor, setContractor] = useState('')
   const [contractorManual, setContractorManual] = useState(false)
-  const [category, setCategory] = useState('')
+  const [categories, setCategories] = useState([])
+  const toggleCategory = (c) =>
+    setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
   const [shareUrl, setShareUrl] = useState('')
   const [shareMsg, setShareMsg] = useState('')
 
@@ -149,7 +141,7 @@ export default function UriageDenpyo({
     setRemaining(DEFAULT_REMAINING[serviceType] || DEFAULT_REMAINING.housing)
     setMiyakoChecked(false)
     setItems([newItem()])
-    if (serviceType !== 'specific') setCategory('')
+    if (serviceType !== 'specific') setCategories([])
   }, [serviceType])
 
   /* 受注簿「特例」セクションからの自動転記 */
@@ -205,7 +197,8 @@ export default function UriageDenpyo({
     if (typeof s.isSelfPay === 'boolean') setIsSelfPay(s.isSelfPay)
     if (typeof s.showDetail === 'boolean') setShowDetail(s.showDetail)
     if (typeof s.contractor === 'string') setContractor(s.contractor)
-    if (typeof s.category === 'string') setCategory(s.category)
+    if (Array.isArray(s.categories)) setCategories(s.categories)
+    else if (typeof s.category === 'string' && s.category) setCategories([s.category])
     setShareMsg('共有リンクから内容を読み込みました。')
     setShareUrl(location.href)
   }, [])
@@ -258,7 +251,7 @@ export default function UriageDenpyo({
     return {
       serviceType, issueDate, salesOffice, customerName, customerAddress, officeName, careManager,
       customerType, billingType, careLevel, userRatio, remaining,
-      items, miyakoChecked, showExTax, staff, isSelfPay, showDetail, contractor, category,
+      items, miyakoChecked, showExTax, staff, isSelfPay, showDetail, contractor, categories,
       total, totalUserBurden: calc.totalUserBurden,
     }
   }
@@ -301,7 +294,7 @@ export default function UriageDenpyo({
     setShowDetail(false)
     setContractor('')
     setContractorManual(false)
-    setCategory('')
+    setCategories([])
     setShareUrl('')
     setSalesOffice('')
     setShareMsg('入力内容を削除しました。')
@@ -309,7 +302,8 @@ export default function UriageDenpyo({
 
   /* 計算結果行 */
   const resultRows = [
-    ['総合計', calc.total],
+    ['総合計（税込）', calc.total],
+    ...(hasCost ? [['仕切り合計（税込）', totalCost]] : []),
     ['保険対象金額', calc.insuranceCovered],
     ...(calc.excess > 0 ? [['超過分（実費）', calc.excess]] : []),
     [`対象内利用者負担額（${burdenLabel}・切り上げ）`, calc.userBurden],
@@ -372,17 +366,30 @@ export default function UriageDenpyo({
             />
             {serviceType === 'specific' && (
               <div className="mt-3">
-                <label className={fieldLabel}>種目</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className={baseInput}
-                >
-                  <option value="">選択</option>
-                  {SPECIFIC_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                <label className={fieldLabel}>種目（複数選択可）</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
+                  {SPECIFIC_CATEGORIES.map((c) => {
+                    const active = categories.includes(c)
+                    return (
+                      <label
+                        key={c}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md border text-xs font-bold cursor-pointer transition ${
+                          active
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={active}
+                          onChange={() => toggleCategory(c)}
+                          className="w-3.5 h-3.5 accent-blue-600"
+                        />
+                        <span>{c}</span>
+                      </label>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -756,7 +763,7 @@ export default function UriageDenpyo({
     </div>
 
     {/* ── 印刷シート（親の外） ──────────────────── */}
-    <div className="uriage-print hidden print:block p-0 text-[11px]">
+    <div className="uriage-print hidden print:block p-0 text-[13px] leading-[1.5]">
       {/* 印刷ヘッダー */}
       <div className="text-center mb-4">
         <p className="text-xs text-slate-500">{salesOffice}</p>
@@ -783,7 +790,7 @@ export default function UriageDenpyo({
           {serviceType === 'specific' && (
             <tr>
               <th className="border border-slate-500 bg-slate-50 px-1.5 py-1 text-left text-[10px] leading-tight">種目</th>
-              <td className="border border-slate-500 px-2 py-1" colSpan={3}>{category}</td>
+              <td className="border border-slate-500 px-2 py-1" colSpan={3}>{categories.join('、')}</td>
             </tr>
           )}
           <tr>
@@ -832,16 +839,17 @@ export default function UriageDenpyo({
       {/* 明細テーブル */}
       <table className="w-full table-fixed border-collapse border border-slate-500 mb-3">
         <colgroup>
-          <col style={{ width: '8%' }} />
+          <col style={{ width: '6%' }} />
           {showProductDetail && (
             <>
-              <col style={{ width: '32%' }} />
-              <col style={{ width: '16%' }} />
+              <col style={{ width: '28%' }} />
+              <col style={{ width: '14%' }} />
             </>
           )}
           <col />
-          <col />
+          {showExTax && <col />}
           {hasCost && <col />}
+          {hasCost && showExTax && <col />}
         </colgroup>
         <thead>
           <tr className="bg-slate-50">
@@ -852,9 +860,10 @@ export default function UriageDenpyo({
                 <th className="border border-slate-500 px-1.5 py-1 text-left">カラー</th>
               </>
             )}
-            <th className="border border-slate-500 px-1.5 py-1 text-right">金額(税込)</th>
-            {showExTax && <th className="border border-slate-500 px-1.5 py-1 text-right">金額(税抜)</th>}
-            {hasCost && <th className="border border-slate-500 px-1.5 py-1 text-right">仕切り(税込)</th>}
+            <th className="border border-slate-500 px-1.5 py-1 text-right">{hasCost ? '工事合計金額(税込)' : '金額(税込)'}</th>
+            {showExTax && <th className="border border-slate-500 px-1.5 py-1 text-right">{hasCost ? '工事合計金額(税抜)' : '金額(税抜)'}</th>}
+            {hasCost && <th className="border border-slate-500 px-1.5 py-1 text-right">工事金額仕切り(税込)</th>}
+            {hasCost && showExTax && <th className="border border-slate-500 px-1.5 py-1 text-right">工事金額仕切り(税抜)</th>}
           </tr>
         </thead>
         <tbody>
@@ -873,6 +882,9 @@ export default function UriageDenpyo({
               )}
               {hasCost && (
                 <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(item.cost)}</td>
+              )}
+              {hasCost && showExTax && (
+                <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(exTax(item.cost))}</td>
               )}
             </tr>
           ))}
