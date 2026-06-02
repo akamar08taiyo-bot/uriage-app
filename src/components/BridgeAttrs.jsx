@@ -57,15 +57,22 @@ export default function BridgeAttrs({ bridge, setBridge }) {
         />
       </div>
 
-      {/* 介護保険残高 */}
+      {/* 介護保険残高（任意・超過しそうな時のみ） */}
       <div className="col-span-12 md:col-span-4">
-        <span className="field-label">介護保険残高</span>
+        <div className="flex items-center justify-between">
+          <span className="field-label">介護保険残高</span>
+          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">任意</span>
+        </div>
         <input
           type="number"
           className="input h-11 text-right text-lg font-extrabold"
           value={bridge.remaining || ''}
+          placeholder="超過しそうな時のみ入力"
           onChange={(e) => patch('remaining', Number(e.target.value) || 0)}
         />
+        <p className="mt-1 text-[10px] text-slate-500 leading-snug">
+          ※ 支給限度額を超過しそうな場合のみ入力（通常は未入力でOK）
+        </p>
       </div>
 
       {/* 施工業者（住宅改修のみ） */}

@@ -558,16 +558,22 @@ export default function UriageDenpyo({
             </div>
           </div>
 
-          {/* 介護保険残高 */}
+          {/* 介護保険残高（任意・超過しそうな時のみ） */}
           <div className={card}>
-            <p className={`${sectionTitle} mb-2`}>介護保険残高</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className={`${sectionTitle} mb-0`}>介護保険残高</p>
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">任意</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mb-2 leading-snug">
+              ※ 介護保険の支給限度額を<strong className="text-slate-700">超過しそうな場合のみ</strong>入力してください。通常は未入力で構いません。
+            </p>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-bold text-slate-500">¥</span>
               <input
                 type="number"
                 value={remaining || ''}
                 onChange={(e) => setRemaining(Number(e.target.value) || 0)}
-                placeholder="0"
+                placeholder="超過しそうな時のみ入力"
                 className={`${baseInput} ${noSpin} h-14 pl-8 pr-3 text-right text-3xl font-extrabold tracking-tight`}
               />
             </div>
