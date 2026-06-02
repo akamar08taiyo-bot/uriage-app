@@ -116,7 +116,7 @@ export default function UriageDenpyo({
   const [careManager, setCareManager] = useState('')
   const [customerType, setCustomerType] = useState('new')
   const [billingType, setBillingType] = useState('receipt')
-  const [careLevel, setCareLevel] = useState('介護１')
+  const [careLevel, setCareLevel] = useState('支援１')
   const [userRatio, setUserRatio] = useState(0.1)
   const [remaining, setRemaining] = useState(DEFAULT_REMAINING.housing)
   const [showBalance, setShowBalance] = useState(false)
@@ -146,29 +146,10 @@ export default function UriageDenpyo({
     if (serviceType !== 'specific') setCategories([])
   }, [serviceType])
 
-  /* 受注簿「特例」セクションからの自動転記 */
+  /* 受注簿「特例」セクションからの自動転記（最小限：区分・残高・施工業者のみ） */
   useEffect(() => {
     if (!bridge || !bridge.enabled) return
     if (bridge.serviceType) setServiceType(bridge.serviceType)
-    if (Array.isArray(bridge.items) && bridge.items.length) {
-      setItems(
-        bridge.items.map((b, i) => ({
-          id: b.id || Date.now() + i,
-          amount: Number(b.amount) || 0,
-          cost: Number(b.cost) || 0,
-          productName: '',
-          modelNumber: '',
-          colorSize: '',
-          color: '',
-          catalog: '',
-        })),
-      )
-    }
-    if (bridge.customerType) setCustomerType(bridge.customerType)
-    if (bridge.billingType) setBillingType(bridge.billingType)
-    if (bridge.careLevel) setCareLevel(bridge.careLevel)
-    if (typeof bridge.userRatio === 'number') setUserRatio(bridge.userRatio)
-    if (typeof bridge.isSelfPay === 'boolean') setIsSelfPay(bridge.isSelfPay)
     if (typeof bridge.remaining === 'number') setRemaining(bridge.remaining)
     if (typeof bridge.contractor === 'string') setContractor(bridge.contractor)
   }, [bridge])
@@ -285,7 +266,7 @@ export default function UriageDenpyo({
     setCareManager('')
     setCustomerType('new')
     setBillingType('receipt')
-    setCareLevel('介護１')
+    setCareLevel('支援１')
     setUserRatio(0.1)
     setRemaining(DEFAULT_REMAINING.housing)
     setItems([newItem()])
