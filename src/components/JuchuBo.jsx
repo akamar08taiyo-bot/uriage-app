@@ -653,33 +653,7 @@ export default function JuchuBo({
             </div>
           </div>
 
-          {bridge && (
-            <div className={`section-card border-2 ${bridge.enabled ? 'border-blue-400 ring-2 ring-blue-100' : 'border-slate-300'}`}>
-              <div
-                className="px-4 py-3 bg-gradient-to-r from-blue-50 to-slate-50 border-b border-slate-200"
-              >
-                <label className="inline-flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="w-6 h-6 accent-blue-600"
-                    checked={Boolean(bridge.enabled)}
-                    onChange={(e) => setBridge({ ...bridge, enabled: e.target.checked })}
-                  />
-                  <span className="text-base md:text-lg font-extrabold text-slate-800">
-                    住宅改修・特定福祉用具として売上伝票発行依頼書へ自動転記する
-                  </span>
-                </label>
-              </div>
-              {bridge.enabled && (
-                <div className="p-4">
-                  <BridgeAttrs bridge={bridge} setBridge={setBridge} />
-                  <p className="mt-3 text-xs text-slate-500">
-                    ※ ここで入力した内容は「売上伝票発行依頼書」タブに自動転記されます。
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+
 
           <div className="section-card">
             <div className="section-heading">商品明細</div>
@@ -817,6 +791,34 @@ export default function JuchuBo({
               </div>
             </div>
           </div>
+
+          {bridge && (
+            <div className={`section-card border-2 ${bridge.enabled ? 'border-blue-400 ring-2 ring-blue-100' : 'border-slate-300'}`}>
+              <div
+                className="px-4 py-3 bg-gradient-to-r from-blue-50 to-slate-50 border-b border-slate-200"
+              >
+                <label className="inline-flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-6 h-6 accent-blue-600"
+                    checked={Boolean(bridge.enabled)}
+                    onChange={(e) => setBridge({ ...bridge, enabled: e.target.checked })}
+                  />
+                  <span className="text-base md:text-lg font-extrabold text-slate-800">
+                    住宅改修・特定福祉用具として売上伝票発行依頼書へ自動転記する
+                  </span>
+                </label>
+              </div>
+              {bridge.enabled && (
+                <div className="p-4">
+                  <BridgeAttrs bridge={bridge} setBridge={setBridge} />
+                  <p className="mt-3 text-xs text-slate-500">
+                    ※ ここで入力した内容は「売上伝票発行依頼書」タブに自動転記されます。
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="section-card">
             <div className="section-heading">備考（最下段）</div>

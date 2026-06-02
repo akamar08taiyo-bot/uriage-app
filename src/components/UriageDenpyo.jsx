@@ -100,6 +100,7 @@ function MoneyInput({ value, onChange, placeholder }) {
 export default function UriageDenpyo({
   master = { offices: [], salesPersons: [], contractors: [] },
   bridge = null,
+  setBridge = null,
 }) {
   const staffList = master.salesPersons || []
   const officeList = master.offices || []
@@ -146,13 +147,86 @@ export default function UriageDenpyo({
     if (serviceType !== 'specific') setCategories([])
   }, [serviceType])
 
-  /* 受注簿「特例」セクションからの自動転記（最小限：区分・残高・施工業者のみ） */
+  /* 受注簿「特例」セクション ⇄ 売上伝票 の双方向同期 */
+  // bridge → 売上伝票（受信）
   useEffect(() => {
     if (!bridge || !bridge.enabled) return
-    if (bridge.serviceType) setServiceType(bridge.serviceType)
-    if (typeof bridge.remaining === 'number') setRemaining(bridge.remaining)
-    if (typeof bridge.contractor === 'string') setContractor(bridge.contractor)
+    if (bridge.serviceType && bridge.serviceType !== serviceType) setServiceType(bridge.serviceType)
+    if (Array.isArray(bridge.items)) {
+      const fromBridge = JSON.stringify(
+        bridge.items.map((b) => ({
+          amount: Number(b.amount) || 0,
+          cost: Number(b.cost) || 0,
+          productName: b.productName || '',
+          color: b.color || '',
+        })),
+      )
+      const fromLocal = JSON.stringify(
+        items.map((b) => ({
+          amount: Number(b.amount) || 0,
+          cost: Number(b.cost) || 0,
+          productName: b.productName || '',
+          color: b.color || '',
+        })),
+      )
+      if (fromBridge !== fromLocal && bridge.items.length) {
+        setItems(
+          bridge.items.map((b, i) => ({
+            id: b.id || Date.now() + i,
+            amount: Number(b.amount) || 0,
+            cost: Number(b.cost) || 0,
+            productName: b.productName || '',
+            modelNumber: '',
+            colorSize: '',
+            color: b.color || '',
+            catalog: '',
+          })),
+        )
+      }
+    }
+    if (bridge.customerType && bridge.customerType !== customerType) setCustomerType(bridge.customerType)
+    if (bridge.billingType && bridge.billingType !== billingType) setBillingType(bridge.billingType)
+    if (bridge.careLevel && bridge.careLevel !== careLevel) setCareLevel(bridge.careLevel)
+    if (typeof bridge.userRatio === 'number' && bridge.userRatio !== userRatio) setUserRatio(bridge.userRatio)
+    if (typeof bridge.isSelfPay === 'boolean' && bridge.isSelfPay !== isSelfPay) setIsSelfPay(bridge.isSelfPay)
+    if (typeof bridge.remaining === 'number' && bridge.remaining !== remaining) setRemaining(bridge.remaining)
+    if (typeof bridge.contractor === 'string' && bridge.contractor !== contractor) setContractor(bridge.contractor)
+    if (Array.isArray(bridge.categories) && JSON.stringify(bridge.categories) !== JSON.stringify(categories)) {
+      setCategories(bridge.categories)
+    }
   }, [bridge])
+
+  // 売上伝票 → bridge（送信）：差分があるときだけ反映
+  useEffect(() => {
+    if (!setBridge || !bridge || !bridge.enabled) return
+    const simpItems = items.map((it) => ({
+      id: it.id,
+      amount: Number(it.amount) || 0,
+      cost: Number(it.cost) || 0,
+      productName: it.productName || '',
+      color: it.color || '',
+    }))
+    const next = {
+      serviceType,
+      items: simpItems,
+      customerType,
+      billingType,
+      careLevel,
+      userRatio,
+      isSelfPay,
+      remaining,
+      contractor,
+      categories,
+    }
+    let diff = false
+    for (const k of Object.keys(next)) {
+      if (JSON.stringify(bridge[k]) !== JSON.stringify(next[k])) {
+        diff = true
+        break
+      }
+    }
+    if (diff) setBridge({ ...bridge, ...next })
+  }, [serviceType, items, customerType, billingType, careLevel, userRatio, isSelfPay, remaining, contractor, categories])
 
   /* 共有リンクから状態復元 */
   useEffect(() => {

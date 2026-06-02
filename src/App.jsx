@@ -11,14 +11,15 @@ const BRIDGE_KEY = 'attr_bridge_v1'
 const defaultBridge = {
   enabled: false,
   serviceType: 'housing',
-  items: [{ id: 1, amount: 0, cost: 0 }],
+  items: [{ id: 1, amount: 0, cost: 0, productName: '', color: '' }],
   customerType: 'new',
   billingType: 'receipt',
-  careLevel: '介護１',
+  careLevel: '支援１',
   userRatio: 0.1,
   isSelfPay: false,
   remaining: 200000,
   contractor: '',
+  categories: [],
 }
 
 function loadMaster(key, fallback) {
@@ -203,7 +204,7 @@ export default function App() {
         <JuchuBo master={juchuMaster} bridge={bridge} setBridge={setBridge} />
       </div>
       <div className={tab === 'uriage' ? '' : 'hidden'}>
-        <UriageDenpyo master={uriageMaster} bridge={bridge} />
+        <UriageDenpyo master={uriageMaster} bridge={bridge} setBridge={setBridge} />
       </div>
     </div>
   )
