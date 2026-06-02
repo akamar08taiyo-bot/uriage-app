@@ -60,7 +60,7 @@ function MasterListInput({ items, onChange, placeholder }) {
 }
 
 export default function App() {
-  const [tab, setTab] = useState(() => (/#\/?uriage/.test(location.hash) ? 'uriage' : 'juchu'))
+  const [tab, setTab] = useState(() => (/#\/?order/.test(location.hash) ? 'juchu' : 'uriage'))
   const [zoom, setZoom] = useState(() => Number(localStorage.getItem('fukushi_zoom')) || 120)
   const [showMaster, setShowMaster] = useState(false)
 
@@ -134,11 +134,11 @@ export default function App() {
         {/* タブバー */}
         <nav className="bg-slate-100 border-b border-slate-200 text-slate-800">
           <div className="max-w-[1500px] mx-auto px-4 flex">
-            <button type="button" className={tabClass('juchu')} onClick={() => setTab('juchu')}>
-              販売受注簿
-            </button>
             <button type="button" className={tabClass('uriage')} onClick={() => setTab('uriage')}>
               売上伝票発行依頼書
+            </button>
+            <button type="button" className={tabClass('juchu')} onClick={() => setTab('juchu')}>
+              販売受注簿
             </button>
           </div>
         </nav>

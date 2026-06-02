@@ -571,7 +571,7 @@ export default function JuchuBo({
               }}
               type="button"
             >
-              全削除
+              空白の状態に戻す
             </button>
           </div>
         </div>

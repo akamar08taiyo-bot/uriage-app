@@ -10,6 +10,7 @@ const TAX = 1.1
 // 特定福祉用具の種目（複数選択可）
 const SPECIFIC_CATEGORIES = [
   '入浴補助用具',
+  '浴槽台',
   '腰掛便座',
   'スロープ',
   '歩行器',
@@ -23,7 +24,8 @@ const SPECIFIC_CATEGORIES = [
 let _seq = 0
 const newItem = () => ({ id: ++_seq, amount: 0, cost: 0, catalog: 'ケアマックス', productName: '', color: '' })
 const fmt = (n) => `¥${Math.round(n || 0).toLocaleString()}`
-const exTax = (n) => Math.round((n || 0) / TAX)
+// 税抜は切り上げ（例: 39,680 → 36,073、80,900 → 73,546）
+const exTax = (n) => Math.ceil((n || 0) / TAX)
 
 /* ── 計算ロジック ────────────────────────────── */
 function calculate({ items, total, remaining, userRatio, miyako, isSelfPay }) {
@@ -120,7 +122,7 @@ export default function UriageDenpyo({
   const [showBalance, setShowBalance] = useState(false)
   const [items, setItems] = useState([newItem()])
   const [miyakoChecked, setMiyakoChecked] = useState(false)
-  const [showExTax, setShowExTax] = useState(false)
+  const [showExTax, setShowExTax] = useState(true)
   const [staff, setStaff] = useState(() => localStorage.getItem('fukushi_staff') || '')
   const [triedPrint, setTriedPrint] = useState(false)
   const [isSelfPay, setIsSelfPay] = useState(false)
@@ -328,7 +330,7 @@ export default function UriageDenpyo({
           <span className="text-xs font-bold text-slate-500">操作:</span>
           <button type="button" onClick={createMail} className="h-9 px-3 rounded-lg text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50">メール作成</button>
           <button type="button" onClick={copyShareLink} className="h-9 px-3 rounded-lg text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50">共有リンク</button>
-          <button type="button" onClick={clearAll} className="h-9 px-3 rounded-lg text-xs font-bold border border-red-300 text-red-700 hover:bg-red-50">全削除</button>
+          <button type="button" onClick={clearAll} className="h-9 px-3 rounded-lg text-xs font-bold border border-red-300 text-red-700 hover:bg-red-50">空白の状態に戻す</button>
           <div className="ml-auto text-xs font-bold text-slate-500">{shareMsg}</div>
         </div>
         {shareUrl && (
@@ -861,9 +863,9 @@ export default function UriageDenpyo({
               </>
             )}
             <th className="border border-slate-500 px-1.5 py-1 text-right">{hasCost ? '工事合計金額(税込)' : '金額(税込)'}</th>
-            {showExTax && <th className="border border-slate-500 px-1.5 py-1 text-right">{hasCost ? '工事合計金額(税抜)' : '金額(税抜)'}</th>}
+            {showExTax && <th className="border border-slate-500 px-1.5 py-1 text-right" style={hasCost ? { background: '#fff3a8' } : undefined}>{hasCost ? '工事合計金額(税抜)' : '金額(税抜)'}</th>}
             {hasCost && <th className="border border-slate-500 px-1.5 py-1 text-right">工事金額仕切り(税込)</th>}
-            {hasCost && showExTax && <th className="border border-slate-500 px-1.5 py-1 text-right">工事金額仕切り(税抜)</th>}
+            {hasCost && showExTax && <th className="border border-slate-500 px-1.5 py-1 text-right" style={{ background: '#fff3a8' }}>工事金額仕切り(税抜)</th>}
           </tr>
         </thead>
         <tbody>
@@ -878,22 +880,25 @@ export default function UriageDenpyo({
               )}
               <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(item.amount)}</td>
               {showExTax && (
-                <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(exTax(item.amount))}</td>
+                <td className="border border-slate-500 px-1.5 py-1 text-right align-top" style={hasCost ? { background: '#fff3a8' } : undefined}>{fmt(exTax(item.amount))}</td>
               )}
               {hasCost && (
                 <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(item.cost)}</td>
               )}
               {hasCost && showExTax && (
-                <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(exTax(item.cost))}</td>
+                <td className="border border-slate-500 px-1.5 py-1 text-right align-top" style={{ background: '#fff3a8' }}>{fmt(exTax(item.cost))}</td>
               )}
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* 仕切り合計（住宅改修のみ） */}
+      {/* 仕切り合計（住宅改修のみ）— 利益金額/利益率はハイライト */}
       {hasCost && total > 0 && (
-        <div className="mb-3 text-xs">
+        <div
+          className="mb-3 px-2 py-1.5 text-xs inline-block font-bold"
+          style={{ background: '#fff3a8', border: '1.2px solid #000' }}
+        >
           <span className="mr-4">仕切り合計: {fmt(totalCost)}</span>
           <span className="mr-4">利益金額: {fmt(profit)}</span>
           <span>利益率: {profitRate}%</span>
@@ -920,15 +925,19 @@ export default function UriageDenpyo({
           </tr>
         </thead>
         <tbody>
-          {resultRows.map(([label, val]) => (
-            <tr key={label}>
-              <td className="border border-slate-500 px-2 py-1">{label}</td>
-              <td className="border border-slate-500 px-2 py-1 text-right">{fmt(val)}</td>
-              {showExTax && (
-                <td className="border border-slate-500 px-2 py-1 text-right">{fmt(exTax(val))}</td>
-              )}
-            </tr>
-          ))}
+          {resultRows.map(([label, val]) => {
+            const highlight = label.includes('利用者負担額') || label.includes('保険者負担額')
+            const hlStyle = highlight ? { background: '#fff3a8' } : undefined
+            return (
+              <tr key={label}>
+                <td className="border border-slate-500 px-2 py-1" style={hlStyle}>{label}</td>
+                <td className="border border-slate-500 px-2 py-1 text-right" style={hlStyle}>{fmt(val)}</td>
+                {showExTax && (
+                  <td className="border border-slate-500 px-2 py-1 text-right" style={hlStyle}>{fmt(exTax(val))}</td>
+                )}
+              </tr>
+            )
+          })}
           <tr className="border border-slate-500 bg-blue-50 font-bold">
             <td className="border border-slate-500 px-2 py-1">ご利用者お支払い合計</td>
             <td className="border border-slate-500 px-2 py-1 text-right">{fmt(calc.totalUserBurden)}</td>
