@@ -194,6 +194,9 @@ export default function UriageDenpyo({
     if (Array.isArray(bridge.categories) && JSON.stringify(bridge.categories) !== JSON.stringify(categories)) {
       setCategories(bridge.categories)
     }
+    if (typeof bridge.customerName === 'string' && bridge.customerName !== customerName) {
+      setCustomerName(bridge.customerName)
+    }
   }, [bridge])
 
   // 売上伝票 → bridge（送信）：差分があるときだけ反映
@@ -217,6 +220,7 @@ export default function UriageDenpyo({
       remaining,
       contractor,
       categories,
+      customerName,
     }
     let diff = false
     for (const k of Object.keys(next)) {
@@ -226,7 +230,7 @@ export default function UriageDenpyo({
       }
     }
     if (diff) setBridge({ ...bridge, ...next })
-  }, [serviceType, items, customerType, billingType, careLevel, userRatio, isSelfPay, remaining, contractor, categories])
+  }, [serviceType, items, customerType, billingType, careLevel, userRatio, isSelfPay, remaining, contractor, categories, customerName])
 
   /* 共有リンクから状態復元 */
   useEffect(() => {

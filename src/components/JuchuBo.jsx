@@ -496,6 +496,66 @@ export default function JuchuBo({
     setOrder((current) => ({ ...current, [key]: value }))
   }
 
+  /* 売上伝票発行依頼書（bridge）→ 受注簿の自動転記 */
+  // 顧客名同期：bridge ⇄ 受注簿
+  useEffect(() => {
+    if (!bridge || !bridge.enabled) return
+    if (typeof bridge.customerName === 'string' && bridge.customerName !== order.customerName) {
+      setOrder((current) => ({ ...current, customerName: bridge.customerName }))
+    }
+  }, [bridge?.enabled, bridge?.customerName])
+  useEffect(() => {
+    if (!setBridge || !bridge || !bridge.enabled) return
+    if ((order.customerName || '') !== (bridge.customerName || '')) {
+      setBridge({ ...bridge, customerName: order.customerName || '' })
+    }
+  }, [order.customerName, bridge?.enabled])
+
+  // 商品明細を bridge.items から自動生成
+  useEffect(() => {
+    if (!bridge || !bridge.enabled) return
+    const src = Array.isArray(bridge.items) ? bridge.items.filter((it) => Number(it.amount) > 0) : []
+    if (!src.length) return
+    const customerForName = bridge.customerName || order.customerName || ''
+    const generated = src.map((it) => {
+      if (bridge.serviceType === 'housing') {
+        const name = `${customerForName}様邸住宅改修（${bridge.contractor || ''}）`
+        return {
+          productName: name,
+          modelNumber: '',
+          colorSize: '',
+          quantity: '1',
+          unit: '式',
+          unitPrice: String(Number(it.amount) || 0),
+        }
+      }
+      return {
+        productName: it.productName || '',
+        modelNumber: '',
+        colorSize: it.color || '',
+        quantity: '1',
+        unit: '',
+        unitPrice: String(Number(it.amount) || 0),
+      }
+    })
+    const same =
+      order.items.length === generated.length &&
+      order.items.every((c, i) => {
+        const g = generated[i]
+        return (
+          c.productName === g.productName &&
+          c.unitPrice === g.unitPrice &&
+          c.unit === g.unit &&
+          c.quantity === g.quantity &&
+          c.colorSize === g.colorSize &&
+          c.modelNumber === g.modelNumber
+        )
+      })
+    if (!same) {
+      setOrder((current) => ({ ...current, items: generated }))
+    }
+  }, [bridge?.enabled, bridge?.serviceType, bridge?.contractor, bridge?.customerName, JSON.stringify(bridge?.items || [])])
+
   function buildShareUrl(sourceOrder) {
     const payload = encodePayload({ order: { ...sourceOrder, totalAmount: total } })
     return `${location.origin}${location.pathname}#/order?payload=${payload}`

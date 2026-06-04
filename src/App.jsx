@@ -20,6 +20,7 @@ const defaultBridge = {
   remaining: 200000,
   contractor: '',
   categories: [],
+  customerName: '',
 }
 
 function loadMaster(key, fallback) {
