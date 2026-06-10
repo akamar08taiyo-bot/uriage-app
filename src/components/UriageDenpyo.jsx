@@ -9,7 +9,8 @@ const CATALOGS = ['ケアマックス', 'ウェルファン']
 const TAX = 1.1
 // 特定福祉用具の種目（複数選択可）
 const SPECIFIC_CATEGORIES = [
-  '入浴補助用具',
+  'シャワーチェア',
+  '浴槽手すり',
   '浴槽台',
   '腰掛便座',
   'スロープ',
@@ -105,7 +106,7 @@ export default function UriageDenpyo({
   const staffList = master.salesPersons || []
   const officeList = master.offices || []
   const contractorList = master.contractors || []
-  const [salesOffice, setSalesOffice] = useState('')
+  const [salesOffice, setSalesOffice] = useState(() => localStorage.getItem('fukushi_salesOffice') || '')
   const today = new Date().toISOString().slice(0, 10)
 
   /* state */
@@ -138,6 +139,12 @@ export default function UriageDenpyo({
 
   /* localStorage 永続化 */
   useEffect(() => { localStorage.setItem('fukushi_staff', staff) }, [staff])
+  useEffect(() => { localStorage.setItem('fukushi_salesOffice', salesOffice) }, [salesOffice])
+  // 営業所: マスタが登録されていて未設定なら先頭を自動採用（以後は固定）
+  useEffect(() => {
+    const valid = officeList.filter((n) => (n || '').trim())
+    if (!salesOffice && valid.length) setSalesOffice(valid[0])
+  }, [officeList])
 
   /* サービス区分変更：明細(金額/仕切り)はクリア、基本情報・属性は維持 */
   useEffect(() => {
@@ -357,7 +364,7 @@ export default function UriageDenpyo({
     setContractorManual(false)
     setCategories([])
     setShareUrl('')
-    setSalesOffice('')
+    // 営業所はマスタ固定のため空白化しない
     setShareMsg('入力内容を削除しました。')
   }
 
@@ -618,22 +625,22 @@ export default function UriageDenpyo({
           </div>
 
           {/* 介護保険残高（任意・超過しそうな時のみ） */}
-          <div className={card}>
+          <div className={`${card} !p-4`}>
             <div className="flex items-center justify-between mb-1">
-              <p className={`${sectionTitle} mb-0`}>介護保険残高</p>
-              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">任意</span>
+              <p className="text-sm font-extrabold text-slate-700">介護保険残高</p>
+              <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded">任意</span>
             </div>
-            <p className="text-[11px] text-slate-500 mb-2 leading-snug">
+            <p className="text-xs text-slate-500 mb-2 leading-snug">
               ※ 介護保険の支給限度額を<strong className="text-slate-700">超過しそうな場合のみ</strong>入力してください。通常は未入力で構いません。
             </p>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-bold text-slate-500">¥</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-500">¥</span>
               <input
                 type="number"
                 value={remaining || ''}
                 onChange={(e) => setRemaining(Number(e.target.value) || 0)}
                 placeholder="超過しそうな時のみ入力"
-                className={`${baseInput} ${noSpin} h-14 pl-8 pr-3 text-right text-3xl font-extrabold tracking-tight`}
+                className={`${baseInput} ${noSpin} h-20 pl-10 pr-4 text-right text-5xl font-extrabold tracking-tight`}
               />
             </div>
           </div>

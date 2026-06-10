@@ -472,10 +472,23 @@ export default function JuchuBo({
   const staffList = master.staff || []
   const officeList = master.offices || []
   const ordererList = master.orderers || []
-  const [order, setOrder] = useState(blankOrder)
+  const [order, setOrder] = useState(() => {
+    const base = blankOrder()
+    const saved = localStorage.getItem('juchu_salesOffice') || ''
+    return saved ? { ...base, salesOffice: saved } : base
+  })
   const [orderId, setOrderId] = useState('')
   const [message, setMessage] = useState('')
   const [shareUrl, setShareUrl] = useState('')
+
+  // 営業所はマスタ登録後固定。永続化＋マスタが入っていれば未設定時に自動採用
+  useEffect(() => { localStorage.setItem('juchu_salesOffice', order.salesOffice || '') }, [order.salesOffice])
+  useEffect(() => {
+    const valid = officeList.filter((n) => (n || '').trim())
+    if (!order.salesOffice && valid.length) {
+      setOrder((current) => ({ ...current, salesOffice: valid[0] }))
+    }
+  }, [officeList])
 
   const staffOptions = useMemo(() => staffList.filter((n) => (n || '').trim()), [staffList])
   const total = useMemo(
@@ -623,7 +636,8 @@ export default function JuchuBo({
               className="toggle-button !border-red-300 !text-red-700 hover:!bg-red-50"
               onClick={() => {
                 if (window.confirm('入力内容をすべて削除します。よろしいですか？')) {
-                  setOrder(blankOrder())
+                  // 営業所は固定のため引き継ぐ
+                  setOrder({ ...blankOrder(), salesOffice: order.salesOffice || '' })
                   setOrderId('')
                   setShareUrl('')
                   setMessage('入力内容を削除しました。')

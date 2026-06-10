@@ -4,7 +4,8 @@
 const CARE_LEVELS = ['支援１', '支援２', '介護１', '介護２', '介護３', '介護４', '介護５']
 const DEFAULT_REMAINING = { housing: 200000, specific: 100000 }
 const SPECIFIC_CATEGORIES = [
-  '入浴補助用具',
+  'シャワーチェア',
+  '浴槽手すり',
   '浴槽台',
   '腰掛便座',
   'スロープ',
