@@ -21,6 +21,9 @@ const defaultBridge = {
   contractor: '',
   categories: [],
   customerName: '',
+  customerAddress: '',
+  officeName: '',
+  careManager: '',
 }
 
 function loadMaster(key, fallback) {

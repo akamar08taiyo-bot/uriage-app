@@ -59,6 +59,8 @@ const blankOrder = () => ({
   customerName: '',
   customerKana: '',
   addressTel: '',
+  officeName: '',
+  careManager: '',
   deliveryDate: '',
   salesDate: '',
   salesSlipNumber: '',
@@ -509,20 +511,37 @@ export default function JuchuBo({
     setOrder((current) => ({ ...current, [key]: value }))
   }
 
-  /* 売上伝票発行依頼書（bridge）→ 受注簿の自動転記 */
-  // 顧客名同期：bridge ⇄ 受注簿
+  /* 売上伝票発行依頼書（bridge）⇄ 受注簿の双方向自動転記
+     基本情報（顧客名・住所・居宅名・担当ケアマネ）は常時同期する */
+  // bridge → 受注簿
   useEffect(() => {
-    if (!bridge || !bridge.enabled) return
+    if (!bridge) return
+    const updates = {}
     if (typeof bridge.customerName === 'string' && bridge.customerName !== order.customerName) {
-      setOrder((current) => ({ ...current, customerName: bridge.customerName }))
+      updates.customerName = bridge.customerName
     }
-  }, [bridge?.enabled, bridge?.customerName])
+    if (typeof bridge.customerAddress === 'string' && bridge.customerAddress !== order.addressTel) {
+      updates.addressTel = bridge.customerAddress
+    }
+    if (typeof bridge.officeName === 'string' && bridge.officeName !== order.officeName) {
+      updates.officeName = bridge.officeName
+    }
+    if (typeof bridge.careManager === 'string' && bridge.careManager !== order.careManager) {
+      updates.careManager = bridge.careManager
+    }
+    if (Object.keys(updates).length) setOrder((current) => ({ ...current, ...updates }))
+  }, [bridge?.customerName, bridge?.customerAddress, bridge?.officeName, bridge?.careManager])
+
+  // 受注簿 → bridge
   useEffect(() => {
-    if (!setBridge || !bridge || !bridge.enabled) return
-    if ((order.customerName || '') !== (bridge.customerName || '')) {
-      setBridge({ ...bridge, customerName: order.customerName || '' })
-    }
-  }, [order.customerName, bridge?.enabled])
+    if (!setBridge || !bridge) return
+    const next = {}
+    if ((order.customerName || '') !== (bridge.customerName || '')) next.customerName = order.customerName || ''
+    if ((order.addressTel || '') !== (bridge.customerAddress || '')) next.customerAddress = order.addressTel || ''
+    if ((order.officeName || '') !== (bridge.officeName || '')) next.officeName = order.officeName || ''
+    if ((order.careManager || '') !== (bridge.careManager || '')) next.careManager = order.careManager || ''
+    if (Object.keys(next).length) setBridge({ ...bridge, ...next })
+  }, [order.customerName, order.addressTel, order.officeName, order.careManager])
 
   // 商品明細を bridge.items から自動生成
   useEffect(() => {
@@ -723,6 +742,12 @@ export default function JuchuBo({
               </Field>
               <Field className="col-span-12 xl:col-span-12" label="住所・TEL">
                 <input className="input" onChange={(e) => patch('addressTel', e.target.value)} value={order.addressTel} />
+              </Field>
+              <Field className="col-span-12 md:col-span-6" label="居宅名">
+                <input className="input" placeholder="居宅事業所名" onChange={(e) => patch('officeName', e.target.value)} value={order.officeName} />
+              </Field>
+              <Field className="col-span-12 md:col-span-6" label="担当ケアマネージャー">
+                <input className="input" placeholder="ケアマネ名" onChange={(e) => patch('careManager', e.target.value)} value={order.careManager} />
               </Field>
             </div>
           </div>
