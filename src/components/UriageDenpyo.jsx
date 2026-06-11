@@ -653,22 +653,22 @@ export default function UriageDenpyo({
           </div>
 
           {/* 介護保険残高（任意・超過しそうな時のみ） */}
-          <div className="bg-white rounded-xl shadow-sm ring-1 ring-slate-200/70 p-4">
+          <div className="bg-white rounded-xl shadow-sm ring-1 ring-slate-200/70 p-3">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-extrabold text-slate-700">介護保険残高</p>
-              <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded">任意</span>
+              <p className="text-xs font-extrabold text-slate-700">介護保険残高</p>
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">任意</span>
             </div>
-            <p className="text-[11px] text-slate-500 mb-2 leading-snug">
-              ※ 介護保険の支給限度額を<strong className="text-slate-700">超過しそうな場合のみ</strong>入力してください。通常は未入力で構いません。
+            <p className="text-[10px] text-slate-500 mb-2 leading-snug">
+              ※ 支給限度額を<strong className="text-slate-700">超過しそうな場合のみ</strong>入力してください。通常は未入力でOK。
             </p>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xl font-bold text-slate-500">¥</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base font-bold text-slate-500">¥</span>
               <input
                 type="number"
                 value={remaining || ''}
                 onChange={(e) => setRemaining(Number(e.target.value) || 0)}
                 placeholder="超過しそうな時のみ入力"
-                className="w-full h-16 rounded-lg border border-slate-300 bg-slate-50 pl-10 pr-4 text-right text-3xl font-extrabold tracking-tight text-slate-800 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-full h-11 rounded-lg border border-slate-300 bg-slate-50 pl-8 pr-3 text-right text-xl font-extrabold tracking-tight text-slate-800 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
           </div>
