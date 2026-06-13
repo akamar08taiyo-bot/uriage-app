@@ -532,20 +532,23 @@ export default function JuchuBo({
     if (Object.keys(updates).length) setOrder((current) => ({ ...current, ...updates }))
   }, [bridge?.customerName, bridge?.customerAddress, bridge?.officeName, bridge?.careManager])
 
-  // 受注簿 → bridge
+  // 受注簿 → bridge（関数形 setBridge でクロージャの古い bridge を回避）
   useEffect(() => {
-    if (!setBridge || !bridge) return
-    const next = {}
-    if ((order.customerName || '') !== (bridge.customerName || '')) next.customerName = order.customerName || ''
-    if ((order.addressTel || '') !== (bridge.customerAddress || '')) next.customerAddress = order.addressTel || ''
-    if ((order.officeName || '') !== (bridge.officeName || '')) next.officeName = order.officeName || ''
-    if ((order.careManager || '') !== (bridge.careManager || '')) next.careManager = order.careManager || ''
-    if (Object.keys(next).length) setBridge({ ...bridge, ...next })
+    if (!setBridge) return
+    setBridge((prev) => {
+      if (!prev) return prev
+      const next = {}
+      if ((order.customerName || '') !== (prev.customerName || '')) next.customerName = order.customerName || ''
+      if ((order.addressTel || '') !== (prev.customerAddress || '')) next.customerAddress = order.addressTel || ''
+      if ((order.officeName || '') !== (prev.officeName || '')) next.officeName = order.officeName || ''
+      if ((order.careManager || '') !== (prev.careManager || '')) next.careManager = order.careManager || ''
+      return Object.keys(next).length ? { ...prev, ...next } : prev
+    })
   }, [order.customerName, order.addressTel, order.officeName, order.careManager])
 
-  // 商品明細を bridge.items から自動生成
+  // 商品明細を bridge.items から自動生成（常時：金額が入っている行があれば反映）
   useEffect(() => {
-    if (!bridge || !bridge.enabled) return
+    if (!bridge) return
     const src = Array.isArray(bridge.items) ? bridge.items.filter((it) => Number(it.amount) > 0) : []
     if (!src.length) return
     const customerForName = bridge.customerName || order.customerName || ''
@@ -586,7 +589,7 @@ export default function JuchuBo({
     if (!same) {
       setOrder((current) => ({ ...current, items: generated }))
     }
-  }, [bridge?.enabled, bridge?.serviceType, bridge?.contractor, bridge?.customerName, JSON.stringify(bridge?.items || [])])
+  }, [bridge?.serviceType, bridge?.contractor, bridge?.customerName, JSON.stringify(bridge?.items || [])])
 
   function buildShareUrl(sourceOrder) {
     const payload = encodePayload({ order: { ...sourceOrder, totalAmount: total } })

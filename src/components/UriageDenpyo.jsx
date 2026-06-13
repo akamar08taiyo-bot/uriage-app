@@ -220,9 +220,9 @@ export default function UriageDenpyo({
     }
   }, [bridge?.customerName, bridge?.customerAddress, bridge?.officeName, bridge?.careManager])
 
-  // 売上伝票 → bridge（送信）：差分があるときだけ反映
+  // 売上伝票 → bridge（送信）：常時。関数形 setBridge で安全に統合
   useEffect(() => {
-    if (!setBridge || !bridge || !bridge.enabled) return
+    if (!setBridge) return
     const simpItems = items.map((it) => ({
       id: it.id,
       amount: Number(it.amount) || 0,
@@ -230,41 +230,43 @@ export default function UriageDenpyo({
       productName: it.productName || '',
       color: it.color || '',
     }))
-    const next = {
-      serviceType,
-      items: simpItems,
-      customerType,
-      billingType,
-      careLevel,
-      userRatio,
-      isSelfPay,
-      remaining,
-      contractor,
-      categories,
-      customerName,
-      customerAddress,
-      officeName,
-      careManager,
-    }
-    let diff = false
-    for (const k of Object.keys(next)) {
-      if (JSON.stringify(bridge[k]) !== JSON.stringify(next[k])) {
-        diff = true
-        break
+    setBridge((prev) => {
+      if (!prev) return prev
+      const next = {
+        serviceType,
+        items: simpItems,
+        customerType,
+        billingType,
+        careLevel,
+        userRatio,
+        isSelfPay,
+        remaining,
+        contractor,
+        categories,
       }
-    }
-    if (diff) setBridge({ ...bridge, ...next })
+      let diff = false
+      for (const k of Object.keys(next)) {
+        if (JSON.stringify(prev[k]) !== JSON.stringify(next[k])) {
+          diff = true
+          break
+        }
+      }
+      return diff ? { ...prev, ...next } : prev
+    })
   }, [serviceType, items, customerType, billingType, careLevel, userRatio, isSelfPay, remaining, contractor, categories])
 
-  // 基本情報の送信（特例フラグに関係なく常に同期）
+  // 基本情報の送信（特例フラグに関係なく常に同期、関数形 setBridge）
   useEffect(() => {
-    if (!setBridge || !bridge) return
-    const next = {}
-    if ((customerName || '') !== (bridge.customerName || '')) next.customerName = customerName || ''
-    if ((customerAddress || '') !== (bridge.customerAddress || '')) next.customerAddress = customerAddress || ''
-    if ((officeName || '') !== (bridge.officeName || '')) next.officeName = officeName || ''
-    if ((careManager || '') !== (bridge.careManager || '')) next.careManager = careManager || ''
-    if (Object.keys(next).length) setBridge({ ...bridge, ...next })
+    if (!setBridge) return
+    setBridge((prev) => {
+      if (!prev) return prev
+      const next = {}
+      if ((customerName || '') !== (prev.customerName || '')) next.customerName = customerName || ''
+      if ((customerAddress || '') !== (prev.customerAddress || '')) next.customerAddress = customerAddress || ''
+      if ((officeName || '') !== (prev.officeName || '')) next.officeName = officeName || ''
+      if ((careManager || '') !== (prev.careManager || '')) next.careManager = careManager || ''
+      return Object.keys(next).length ? { ...prev, ...next } : prev
+    })
   }, [customerName, customerAddress, officeName, careManager])
 
   /* 共有リンクから状態復元 */
