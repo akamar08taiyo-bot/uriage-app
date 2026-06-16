@@ -311,10 +311,12 @@ export default function UriageDenpyo({
   const totalCost = hasCost ? items.reduce((s, it) => s + (it.cost || 0), 0) : 0
   const profit = total - totalCost
   const profitRate = total > 0 ? ((profit / total) * 100).toFixed(1) : '0.0'
-  const hasProductInfo = items.some(
-    (it) => (it.productName || '').trim() || (it.color || '').trim() || (it.catalog || '').trim()
-  )
-  const showProductDetail = serviceType === 'specific' && (showDetail || hasProductInfo)
+  // 印刷では入力された列だけを表示する
+  const hasProductName = items.some((it) => (it.productName || '').trim())
+  const hasColorInput = items.some((it) => (it.color || '').trim())
+  const showPrintProductName = serviceType === 'specific' && hasProductName
+  const showPrintColor = serviceType === 'specific' && hasColorInput
+  const showProductDetail = showPrintProductName || showPrintColor
 
   const calc = useMemo(
     () => calculate({ items, total, remaining, userRatio, miyako: applyMiyako, isSelfPay }),
@@ -690,7 +692,7 @@ export default function UriageDenpyo({
                     onChange={(e) => setShowDetail(e.target.checked)}
                     className="rounded"
                   />
-                  商品詳細を表示
+                  商品名も表示
                 </label>
               )}
             </div>
@@ -731,16 +733,18 @@ export default function UriageDenpyo({
                       </button>
                     )}
                   </div>
-                  {/* 商品詳細（特定福祉用具 & showDetail時のみ）：商品名・カラーのみ */}
-                  {serviceType === 'specific' && showDetail && (
-                    <div className="ml-6 grid grid-cols-[3fr_1fr] gap-1">
-                      <input
-                        type="text"
-                        value={item.productName}
-                        onChange={(e) => updateItem(item.id, 'productName', e.target.value)}
-                        placeholder="商品名"
-                        className={`${baseInput} text-[11px] h-7`}
-                      />
+                  {/* 商品詳細（特定福祉用具のみ）：カラーは常時表示、商品名はトグルON時のみ */}
+                  {serviceType === 'specific' && (
+                    <div className={`ml-6 grid gap-1 ${showDetail ? 'grid-cols-[3fr_1fr]' : 'grid-cols-1 max-w-[160px]'}`}>
+                      {showDetail && (
+                        <input
+                          type="text"
+                          value={item.productName}
+                          onChange={(e) => updateItem(item.id, 'productName', e.target.value)}
+                          placeholder="商品名"
+                          className={`${baseInput} text-[11px] h-7`}
+                        />
+                      )}
                       <input
                         type="text"
                         value={item.color}
@@ -944,12 +948,8 @@ export default function UriageDenpyo({
       <table className="w-full table-fixed border-collapse border border-slate-500 mb-3">
         <colgroup>
           <col style={{ width: '6%' }} />
-          {showProductDetail && (
-            <>
-              <col style={{ width: '28%' }} />
-              <col style={{ width: '14%' }} />
-            </>
-          )}
+          {showPrintProductName && <col style={{ width: '28%' }} />}
+          {showPrintColor && <col style={{ width: '14%' }} />}
           <col />
           {showExTax && <col />}
           {hasCost && <col />}
@@ -958,12 +958,8 @@ export default function UriageDenpyo({
         <thead>
           <tr className="bg-slate-50">
             <th className="border border-slate-500 px-1.5 py-1 text-center">No</th>
-            {showProductDetail && (
-              <>
-                <th className="border border-slate-500 px-1.5 py-1 text-left">商品名</th>
-                <th className="border border-slate-500 px-1.5 py-1 text-left">カラー</th>
-              </>
-            )}
+            {showPrintProductName && <th className="border border-slate-500 px-1.5 py-1 text-left">商品名</th>}
+            {showPrintColor && <th className="border border-slate-500 px-1.5 py-1 text-left">カラー</th>}
             <th className="border border-slate-500 px-1.5 py-1 text-right">{hasCost ? '工事合計金額(税込)' : '金額(税込)'}</th>
             {showExTax && <th className="border border-slate-500 px-1.5 py-1 text-right" style={hasCost ? { background: '#fff3a8' } : undefined}>{hasCost ? '工事合計金額(税抜)' : '金額(税抜)'}</th>}
             {hasCost && <th className="border border-slate-500 px-1.5 py-1 text-right">工事金額仕切り(税込)</th>}
@@ -974,11 +970,11 @@ export default function UriageDenpyo({
           {items.filter((it) => it.amount > 0).map((item, i) => (
             <tr key={item.id}>
               <td className="border border-slate-500 px-1.5 py-1 text-center align-top">{i + 1}</td>
-              {showProductDetail && (
-                <>
-                  <td className="border border-slate-500 px-1.5 py-1 align-top break-words">{item.productName}</td>
-                  <td className="border border-slate-500 px-1.5 py-1 align-top break-words">{item.color}</td>
-                </>
+              {showPrintProductName && (
+                <td className="border border-slate-500 px-1.5 py-1 align-top break-words">{item.productName}</td>
+              )}
+              {showPrintColor && (
+                <td className="border border-slate-500 px-1.5 py-1 align-top break-words">{item.color}</td>
               )}
               <td className="border border-slate-500 px-1.5 py-1 text-right align-top">{fmt(item.amount)}</td>
               {showExTax && (
