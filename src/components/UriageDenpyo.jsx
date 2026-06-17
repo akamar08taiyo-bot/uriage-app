@@ -316,7 +316,6 @@ export default function UriageDenpyo({
   const hasColorInput = items.some((it) => (it.color || '').trim())
   const showPrintProductName = serviceType === 'specific' && hasProductName
   const showPrintColor = serviceType === 'specific' && hasColorInput
-  const showProductDetail = showPrintProductName || showPrintColor
 
   const calc = useMemo(
     () => calculate({ items, total, remaining, userRatio, miyako: applyMiyako, isSelfPay }),
