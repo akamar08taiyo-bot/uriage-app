@@ -112,10 +112,16 @@ export default function UriageDenpyo({
   /* state */
   const [serviceType, setServiceType] = useState('housing')
   const [issueDate, setIssueDate] = useState(today)
-  const [customerName, setCustomerName] = useState('')
-  const [customerAddress, setCustomerAddress] = useState('')
-  const [officeName, setOfficeName] = useState('')
-  const [careManager, setCareManager] = useState('')
+  // 基本情報（顧客名/住所/居宅名/担当ケアマネ）は bridge を唯一の真値源にする。
+  // ループ防止のため UriageDenpyo の useState は持たず、直接 bridge を読み書きする。
+  const customerName = bridge?.customerName ?? ''
+  const customerAddress = bridge?.customerAddress ?? ''
+  const officeName = bridge?.officeName ?? ''
+  const careManager = bridge?.careManager ?? ''
+  const setCustomerName = (v) => setBridge?.((prev) => prev ? { ...prev, customerName: v } : prev)
+  const setCustomerAddress = (v) => setBridge?.((prev) => prev ? { ...prev, customerAddress: v } : prev)
+  const setOfficeName = (v) => setBridge?.((prev) => prev ? { ...prev, officeName: v } : prev)
+  const setCareManager = (v) => setBridge?.((prev) => prev ? { ...prev, careManager: v } : prev)
   const [customerType, setCustomerType] = useState('new')
   const [billingType, setBillingType] = useState('receipt')
   const [careLevel, setCareLevel] = useState('支援１')
@@ -203,22 +209,7 @@ export default function UriageDenpyo({
     }
   }, [bridge])
 
-  // 基本情報（顧客名・住所・居宅名・担当ケアマネ）は常時同期
-  useEffect(() => {
-    if (!bridge) return
-    if (typeof bridge.customerName === 'string' && bridge.customerName !== customerName) {
-      setCustomerName(bridge.customerName)
-    }
-    if (typeof bridge.customerAddress === 'string' && bridge.customerAddress !== customerAddress) {
-      setCustomerAddress(bridge.customerAddress)
-    }
-    if (typeof bridge.officeName === 'string' && bridge.officeName !== officeName) {
-      setOfficeName(bridge.officeName)
-    }
-    if (typeof bridge.careManager === 'string' && bridge.careManager !== careManager) {
-      setCareManager(bridge.careManager)
-    }
-  }, [bridge?.customerName, bridge?.customerAddress, bridge?.officeName, bridge?.careManager])
+  // 基本情報は bridge を直接読み書きするため、別途同期 useEffect は不要
 
   // 売上伝票 → bridge（送信）：常時。関数形 setBridge で安全に統合
   useEffect(() => {
@@ -255,19 +246,7 @@ export default function UriageDenpyo({
     })
   }, [serviceType, items, customerType, billingType, careLevel, userRatio, isSelfPay, remaining, contractor, categories])
 
-  // 基本情報の送信（特例フラグに関係なく常に同期、関数形 setBridge）
-  useEffect(() => {
-    if (!setBridge) return
-    setBridge((prev) => {
-      if (!prev) return prev
-      const next = {}
-      if ((customerName || '') !== (prev.customerName || '')) next.customerName = customerName || ''
-      if ((customerAddress || '') !== (prev.customerAddress || '')) next.customerAddress = customerAddress || ''
-      if ((officeName || '') !== (prev.officeName || '')) next.officeName = officeName || ''
-      if ((careManager || '') !== (prev.careManager || '')) next.careManager = careManager || ''
-      return Object.keys(next).length ? { ...prev, ...next } : prev
-    })
-  }, [customerName, customerAddress, officeName, careManager])
+  // 基本情報は input の onChange から直接 setBridge を呼ぶため、push useEffect は不要
 
   /* 共有リンクから状態復元 */
   useEffect(() => {
