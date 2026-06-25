@@ -904,7 +904,7 @@ export default function JuchuBo({
                     type="checkbox"
                     className="w-6 h-6 accent-blue-600"
                     checked={Boolean(bridge.enabled)}
-                    onChange={(e) => setBridge({ ...bridge, enabled: e.target.checked })}
+                    onChange={(e) => setBridge((prev) => (prev ? { ...prev, enabled: e.target.checked } : prev))}
                   />
                   <span className="text-base md:text-lg font-extrabold text-slate-800">
                     住宅改修・特定福祉用具として売上伝票発行依頼書へ自動転記する

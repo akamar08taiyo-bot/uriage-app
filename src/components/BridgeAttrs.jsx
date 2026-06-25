@@ -40,21 +40,38 @@ function ToggleButtons({ options, value, onChange }) {
 }
 
 export default function BridgeAttrs({ bridge, setBridge }) {
-  const patch = (k, v) => setBridge({ ...bridge, [k]: v })
+  // 関数形 setBridge で古い closure 値を回避（連続更新時の取りこぼし防止）
+  const patch = (k, v) => setBridge((prev) => (prev ? { ...prev, [k]: v } : prev))
   const items = Array.isArray(bridge.items) && bridge.items.length
     ? bridge.items
     : [{ id: 1, amount: 0, cost: 0, productName: '', color: '' }]
   const updateItem = (i, k, v) =>
-    patch('items', items.map((it, idx) => (idx === i ? { ...it, [k]: v } : it)))
+    setBridge((prev) => {
+      if (!prev) return prev
+      const cur = Array.isArray(prev.items) && prev.items.length ? prev.items : items
+      return { ...prev, items: cur.map((it, idx) => (idx === i ? { ...it, [k]: v } : it)) }
+    })
   const addItem = () =>
-    patch('items', [...items, { id: Date.now(), amount: 0, cost: 0, productName: '', color: '' }])
+    setBridge((prev) => {
+      if (!prev) return prev
+      const cur = Array.isArray(prev.items) ? prev.items : []
+      return { ...prev, items: [...cur, { id: Date.now(), amount: 0, cost: 0, productName: '', color: '' }] }
+    })
   const removeItem = (i) =>
-    patch('items', items.length <= 1 ? items : items.filter((_, idx) => idx !== i))
+    setBridge((prev) => {
+      if (!prev) return prev
+      const cur = Array.isArray(prev.items) ? prev.items : []
+      return { ...prev, items: cur.length <= 1 ? cur : cur.filter((_, idx) => idx !== i) }
+    })
   const hasCost = bridge.serviceType === 'housing'
   const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
   const categories = Array.isArray(bridge.categories) ? bridge.categories : []
   const toggleCategory = (c) =>
-    patch('categories', categories.includes(c) ? categories.filter((x) => x !== c) : [...categories, c])
+    setBridge((prev) => {
+      if (!prev) return prev
+      const cur = Array.isArray(prev.categories) ? prev.categories : []
+      return { ...prev, categories: cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c] }
+    })
 
   return (
     <div className="grid grid-cols-12 gap-3">
@@ -65,13 +82,17 @@ export default function BridgeAttrs({ bridge, setBridge }) {
           options={[{ value: 'housing', label: '住宅改修' }, { value: 'specific', label: '特定福祉用具' }]}
           value={bridge.serviceType}
           onChange={(v) =>
-            setBridge({
-              ...bridge,
-              serviceType: v,
-              remaining: DEFAULT_REMAINING[v],
-              items: [{ id: Date.now(), amount: 0, cost: 0, productName: '', color: '' }],
-              categories: v === 'specific' ? categories : [],
-            })
+            setBridge((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    serviceType: v,
+                    remaining: DEFAULT_REMAINING[v],
+                    items: [{ id: Date.now(), amount: 0, cost: 0, productName: '', color: '' }],
+                    categories: v === 'specific' ? (prev.categories || []) : [],
+                  }
+                : prev,
+            )
           }
         />
       </div>
