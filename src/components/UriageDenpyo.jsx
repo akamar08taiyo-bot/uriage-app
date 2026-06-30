@@ -98,15 +98,31 @@ function MoneyInput({ value, onChange, placeholder }) {
 }
 
 /* ── メインコンポーネント ─────────────────────── */
+const SELECTED_RECIPIENTS_KEY = 'fukushi_mailRecipients_selected'
+
 export default function UriageDenpyo({
-  master = { offices: [], salesPersons: [], contractors: [] },
+  master = { offices: [], salesPersons: [], contractors: [], mailRecipients: [] },
   bridge = null,
   setBridge = null,
 }) {
   const staffList = master.salesPersons || []
   const officeList = master.offices || []
   const contractorList = master.contractors || []
+  const mailRecipientList = (master.mailRecipients || []).filter((n) => (n || '').trim())
   const [salesOffice, setSalesOffice] = useState(() => localStorage.getItem('fukushi_salesOffice') || '')
+  const [selectedMailRecipients, setSelectedMailRecipients] = useState(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(SELECTED_RECIPIENTS_KEY) || '[]')
+      return Array.isArray(v) ? v : []
+    } catch { return [] }
+  })
+  useEffect(() => {
+    localStorage.setItem(SELECTED_RECIPIENTS_KEY, JSON.stringify(selectedMailRecipients))
+  }, [selectedMailRecipients])
+  const toggleRecipient = (addr) =>
+    setSelectedMailRecipients((prev) =>
+      prev.includes(addr) ? prev.filter((x) => x !== addr) : [...prev, addr]
+    )
   const today = new Date().toISOString().slice(0, 10)
 
   /* state */
@@ -324,6 +340,66 @@ export default function UriageDenpyo({
     if (canPrint) printDoc('portrait')
   }
 
+  /* PDF 出力（印刷用シートを html2pdf でファイル化して保存） */
+  const pdfFileName = () => {
+    const safeName = (customerName || '').replace(/[\\/:*?"<>|]/g, '_').trim() || '無題'
+    return `売上伝票_${safeName}_${issueDate}.pdf`
+  }
+  async function generatePdf({ save = true } = {}) {
+    const printEl = document.querySelector('.uriage-print')
+    if (!printEl) return null
+    const html2pdf = (await import('html2pdf.js')).default
+    const saved = {
+      display: printEl.style.display,
+      position: printEl.style.position,
+      top: printEl.style.top,
+      left: printEl.style.left,
+      width: printEl.style.width,
+      background: printEl.style.background,
+      hadHidden: printEl.classList.contains('hidden'),
+    }
+    printEl.classList.remove('hidden')
+    printEl.style.display = 'block'
+    printEl.style.position = 'fixed'
+    printEl.style.top = '-10000px'
+    printEl.style.left = '0'
+    printEl.style.width = '210mm'
+    printEl.style.background = '#ffffff'
+    try {
+      const worker = html2pdf().set({
+        margin: 10,
+        filename: pdfFileName(),
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(printEl)
+      if (save) {
+        await worker.save()
+        return null
+      }
+      return await worker.outputPdf('blob')
+    } finally {
+      if (saved.hadHidden) printEl.classList.add('hidden')
+      printEl.style.display = saved.display
+      printEl.style.position = saved.position
+      printEl.style.top = saved.top
+      printEl.style.left = saved.left
+      printEl.style.width = saved.width
+      printEl.style.background = saved.background
+    }
+  }
+  const handlePdf = async () => {
+    setTriedPrint(true)
+    if (!canPrint) return
+    setShareMsg('PDF を作成中…')
+    try {
+      await generatePdf({ save: true })
+      setShareMsg('PDF を保存しました。')
+    } catch {
+      setShareMsg('PDF の作成に失敗しました。')
+    }
+  }
+
   /* 共有リンク・メール・全削除 */
   function snapshotSales() {
     return {
@@ -343,13 +419,34 @@ export default function UriageDenpyo({
     const copied = await writeClipboard(longUrl)
     setShareMsg(copied ? '共有URLをクリップボードにコピーしました。' : '共有URLを下に表示しました。')
   }
-  function createMail() {
+  async function createMail() {
     // メール用は短縮しない長いURLをそのまま使用
     const longUrl = buildLongShareUrl()
     setShareUrl(longUrl)
+    // PDF を先に作成しダウンロードしておくと、ユーザーがメールに添付しやすい
+    let attached = false
+    if (canPrint) {
+      setShareMsg('PDF を作成中…')
+      try {
+        await generatePdf({ save: true })
+        attached = true
+      } catch {
+        // 失敗してもメール作成は続行
+      }
+    }
+    const recipients = selectedMailRecipients.length ? selectedMailRecipients : mailRecipientList
+    const to = recipients.map((a) => encodeURIComponent(a)).join(',')
     const subject = `売上伝票発行のご依頼 ${customerName || ''}`.trim()
-    const body = `お疲れ様です。\n下記URLの通り、売上伝票の発行をお願いいたします。\n\n${longUrl}\n`
-    location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    const body =
+      `お疲れ様です。\n下記URLの通り、売上伝票の発行をお願いいたします。\n` +
+      (attached ? `（PDF を保存しました。お手数ですがこのメールにご添付ください: ${pdfFileName()}）\n` : '') +
+      `\n${longUrl}\n`
+    setShareMsg(
+      attached
+        ? 'PDF を保存しました。メーラーが開きます — 保存した PDF を添付して送信してください。'
+        : 'メーラーを開きました。'
+    )
+    location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   }
   function clearAll() {
     if (!window.confirm('入力内容をすべて削除します。よろしいですか？')) return
@@ -404,11 +501,46 @@ export default function UriageDenpyo({
         )}
         <div className="bg-white rounded-xl shadow-sm ring-1 ring-slate-200/70 px-3 py-2 flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold text-slate-500">操作:</span>
+          <button type="button" onClick={handlePrint} className="h-9 px-3 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">印刷</button>
+          <button type="button" onClick={handlePdf} className="h-9 px-3 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">PDF</button>
           <button type="button" onClick={createMail} className="h-9 px-3 rounded-lg text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50">メール作成</button>
           <button type="button" onClick={copyShareLink} className="h-9 px-3 rounded-lg text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50">共有リンク</button>
           <button type="button" onClick={clearAll} className="h-9 px-3 rounded-lg text-xs font-bold border border-red-300 text-red-700 hover:bg-red-50">空白の状態に戻す</button>
           <div className="ml-auto text-xs font-bold text-slate-500">{shareMsg}</div>
         </div>
+        {mailRecipientList.length > 0 && (
+          <div className="mt-2 bg-white rounded-xl shadow-sm ring-1 ring-slate-200/70 px-3 py-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-slate-500">メール宛先:</span>
+              {mailRecipientList.map((addr) => {
+                const active = selectedMailRecipients.includes(addr)
+                return (
+                  <button
+                    key={addr}
+                    type="button"
+                    onClick={() => toggleRecipient(addr)}
+                    className={`h-7 px-2 rounded-md text-[11px] font-bold transition border ${
+                      active
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                    }`}
+                    title={addr}
+                  >
+                    {addr}
+                  </button>
+                )
+              })}
+              {selectedMailRecipients.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedMailRecipients([])}
+                  className="ml-1 h-7 px-2 rounded-md text-[11px] text-slate-500 hover:bg-slate-100"
+                >クリア</button>
+              )}
+              <span className="ml-auto text-[10px] text-slate-400">未選択時は候補すべてを宛先にします</span>
+            </div>
+          </div>
+        )}
         {shareUrl && (
           <div className="mt-2 share-box">
             <span className="text-xs font-black text-teal-900">共有URL</span>

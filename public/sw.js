@@ -1,4 +1,4 @@
-const CACHE = 'uriage-v3'
+const CACHE = 'uriage-v4'
 
 self.addEventListener('install', () => self.skipWaiting())
 

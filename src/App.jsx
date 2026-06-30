@@ -73,7 +73,7 @@ export default function App() {
     loadMaster(JUCHU_MASTER_KEY, { offices: [], staff: [], orderers: [] }),
   )
   const [uriageMaster, setUriageMaster] = useState(() =>
-    loadMaster(URIAGE_MASTER_KEY, { offices: [], salesPersons: [], contractors: [] }),
+    loadMaster(URIAGE_MASTER_KEY, { offices: [], salesPersons: [], contractors: [], mailRecipients: [] }),
   )
   const [bridge, setBridge] = useState(() => {
     try {
@@ -185,6 +185,14 @@ export default function App() {
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">施工業者</label>
                 <MasterListInput items={uriageMaster.contractors} onChange={(v) => updateUriage('contractors', v)} placeholder="施工業者名" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">メール宛先候補</label>
+                <MasterListInput
+                  items={uriageMaster.mailRecipients}
+                  onChange={(v) => updateUriage('mailRecipients', v)}
+                  placeholder="example@taiyo.co.jp ／ 山田 太郎 <yamada@example.com>"
+                />
               </div>
             </div>
             <div className="md:col-span-2 pt-2 border-t border-slate-100">
